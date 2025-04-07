@@ -136,7 +136,7 @@ bool ALandmark::sanityCheck() {
     }
 
     // We proceed a 95% chi2test on a 2D point detection
-    if (this->avgChi2err() > 2.0) {
+    if (this->avgChi2err() > 5.991) {
         this->setOutlier();
         return false;
     } else

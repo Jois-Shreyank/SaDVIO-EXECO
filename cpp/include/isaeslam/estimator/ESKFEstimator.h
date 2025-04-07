@@ -16,6 +16,7 @@ class ESKFEstimator : public APoseEstimator {
                                   typed_vec_match &typed_matches,
                                   Eigen::Affine3d &dT,
                                   Eigen::MatrixXd &covdT) override;
+    bool refineTriangulation(std::shared_ptr<Frame> &frame);
 };
 
 } // namespace isae

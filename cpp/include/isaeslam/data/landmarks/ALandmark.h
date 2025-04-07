@@ -33,6 +33,10 @@ class ALandmark : public std::enable_shared_from_this<ALandmark> {
         std::lock_guard<std::mutex> lock(_lmk_mtx);
         _T_w_l = T_w_l;
     }
+    void setPosition(Eigen::Vector3d t_w_l) {
+        std::lock_guard<std::mutex> lock(_lmk_mtx);
+        _T_w_l.translation() = t_w_l;
+    }
     Eigen::Affine3d getPose() const {
         std::lock_guard<std::mutex> lock(_lmk_mtx);
         return _T_w_l;

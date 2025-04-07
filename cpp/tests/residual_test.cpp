@@ -2,7 +2,10 @@
 #include "isaeslam/data/sensors/Camera.h"
 #include "isaeslam/optimizers/AngularAdjustmentCERESAnalytic.h"
 #include "isaeslam/optimizers/BundleAdjustmentCERESAnalytic.h"
+#include "isaeslam/landmarkinitializer/Point3DlandmarkInitializer.h"
 #include "isaeslam/optimizers/residuals.hpp"
+#include "isaeslam/estimator/ESKFEstimator.h"
+#include "isaeslam/data/features/Point2D.h"
 #include <gtest/gtest.h>
 
 namespace isae {
@@ -54,6 +57,28 @@ class ResidualTest : public testing::Test {
                    _rand_lmk, _frame1->getWorld2FrameTransform(), Eigen::Matrix2d::Identity(), _p2d1, NULL, NULL)) {
             _rand_lmk.translation() = Eigen::Vector3d::Random();
         }
+
+        // Init features
+        std::vector<Eigen::Vector2d> p2d0, p2d1;
+        p2d0.push_back(_p2d0);
+        p2d1.push_back(_p2d1);
+        std::shared_ptr<AFeature> f0 = std::shared_ptr<AFeature>(new Point2D(p2d0));
+        _sensor0->addFeature("pointxd", f0);
+        f0->computeBearingVectors();
+        std::shared_ptr<AFeature> f1 = std::shared_ptr<AFeature>(new Point2D(p2d1));
+        _sensor1->addFeature("pointxd", f1);
+        f1->computeBearingVectors();
+
+        // Init landmark
+        _lmk = std::shared_ptr<Point3D>(new Point3D());
+        std::vector<std::shared_ptr<AFeature>> features;
+        features.push_back(f0);
+        features.push_back(f1);
+
+        _lmk->init(_rand_lmk, features);
+        _frame0->addLandmark(_lmk);
+        _frame1->addLandmark(_lmk);
+
     }
 
     std::shared_ptr<Frame> _frame0, _frame1;
@@ -61,6 +86,7 @@ class ResidualTest : public testing::Test {
     Eigen::Affine3d _rand_lmk, _dT;
     Eigen::Matrix3d _K;
     Eigen::Vector2d _p2d0, _p2d1;
+    std::shared_ptr<ALandmark> _lmk;
 };
 
 TEST_F(ResidualTest, PriorResidual) {
@@ -312,6 +338,16 @@ TEST_F(ResidualTest, RelativePose6DResidual) {
 
     ASSERT_NEAR((results.local_jacobians.at(0) - results.jacobians.at(0)).sum(), 0, 1e-5);
     ASSERT_NEAR((results.local_jacobians.at(1) - results.jacobians.at(1)).sum(), 0, 1e-5);
+}
+
+TEST_F(ResidualTest, ESKFLmkTest) {
+    ESKFEstimator estimator;
+
+    Eigen::Vector3d t_lmk = _lmk->getPose().translation();
+    Eigen::Vector3d t_lmk_noise = _lmk->getPose().translation() + 0.1 * Eigen::Vector3d::Random();  
+    _lmk->setPosition(t_lmk_noise);
+    estimator.refineTriangulation(_frame1);
+    ASSERT_NEAR((_lmk->getPose().translation() - t_lmk).norm(), 0, 0.02);
 }
 
 } // namespace isae
