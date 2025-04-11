@@ -225,7 +225,7 @@ bool SLAMBiMonoVIO::step_init() {
     }
 
     // Force a KF to prevent the IMU to drift
-    if (dt > 0.05)
+    if (dt > 0.5)
         _frame->setKeyFrame();
 
     if (shouldInsertKeyframe(_frame)) {
@@ -438,7 +438,6 @@ bool SLAMBiMonoVIO::frontEndStep() {
         T_f_w = dT.inverse() * getLastKF()->getWorld2FrameTransform();
         _frame->setWorld2FrameTransform(T_f_w);
         outlierRemoval();
-        detectFeatures(_frame->getSensors().at(0));
         _frame->setKeyFrame();
     }
 
@@ -469,9 +468,11 @@ bool SLAMBiMonoVIO::frontEndStep() {
             _frame->setWorld2FrameTransform(T_f_w);
         }
 
-        // To debug when prediction fails
+        // To set pose when prediction fails
         if (!good_it) {
             _frame->getIMU()->estimateTransform(_last_IMU->getLastKF(), _frame, dT);
+            T_f_w = dT.inverse() * getLastKF()->getWorld2FrameTransform();
+            _frame->setWorld2FrameTransform(T_f_w);
             std::cout << "IMU dT : \n" << dT.matrix() << std::endl;
             std::cout << "pnp dT : \n"
                       << (getLastKF()->getWorld2FrameTransform() * _frame->getFrame2WorldTransform()).matrix()
@@ -529,7 +530,8 @@ bool SLAMBiMonoVIO::frontEndStep() {
         // - Reject outliers with reprojection error
         isae::timer::tic();
         initLandmarks(_frame);
-        _slam_param->getOptimizerFront()->landmarkOptimization(_frame);
+        ESKFEstimator eskf;
+        eskf.refineTriangulation(_frame);
         float lmk_dt    = isae::timer::silentToc();
         _avg_lmk_init_t = (_avg_lmk_init_t * (_nkeyframes - 1) + lmk_dt) / _nkeyframes;
 

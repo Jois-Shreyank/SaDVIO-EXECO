@@ -171,6 +171,8 @@ class SensorSubscriber : public rclcpp::Node {
 
                 t_last = t_curr;
             }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
         std::cout << "\n Bag reader SyncProcess thread is terminating!\n";

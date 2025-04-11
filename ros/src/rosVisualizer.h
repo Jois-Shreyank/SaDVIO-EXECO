@@ -3,6 +3,7 @@
 
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/core.hpp>
+#include <thread>
 
 #include "sensor_msgs/point_cloud2_iterator.hpp"
 #include <geometry_msgs/msg/point.hpp>
@@ -585,6 +586,8 @@ class RosVisualizer : public rclcpp::Node {
                 publishMesh(SLAM->_mesh_to_display);
                 SLAM->_mesh_to_display.reset();
             }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
 

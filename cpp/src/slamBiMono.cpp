@@ -207,7 +207,8 @@ bool SLAMBiMono::frontEndStep() {
         // - Reject outliers with reprojection error
         isae::timer::tic();
         initLandmarks(_frame);
-        _slam_param->getOptimizerFront()->landmarkOptimization(_frame);
+        ESKFEstimator eskf;
+        eskf.refineTriangulation(_frame);
         _avg_lmk_init_t = (_avg_lmk_init_t * (_nkeyframes - 1) + isae::timer::silentToc()) / _nkeyframes;
 
         // Wait the end of optim
@@ -267,7 +268,7 @@ bool SLAMBiMono::backEndStep() {
             _local_map->discardLastFrame();
             _map_mutex.unlock();
         }
-        _avg_marg_t = (_avg_marg_t * (_nkeyframes - 1) + (double)_local_map->getFrames().size()) / _nkeyframes;
+        _avg_marg_t = (_avg_marg_t * (_nkeyframes - 1) + isae::timer::silentToc()) / _nkeyframes;
 
         // Optimize Local Map
         isae::timer::tic();

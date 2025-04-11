@@ -94,6 +94,11 @@ bool LocalMap::computeRelativePose(std::shared_ptr<isae::Frame> &frame1,
                                    std::shared_ptr<isae::Frame> &frame2,
                                    Eigen::Affine3d &T_f1_f2,
                                    Eigen::MatrixXd &cov) {
+    // Check if the local map is not empty
+    if (_frames.size() < 2) {
+        return false;
+    }
+
     // Compute the relative pose between two frames
     T_f1_f2 = frame1->getFrame2WorldTransform().inverse() * frame2->getFrame2WorldTransform();
 
@@ -112,23 +117,23 @@ bool LocalMap::computeRelativePose(std::shared_ptr<isae::Frame> &frame1,
 
     // Propagate the covariance
     cov = frames_to_add.at(1)->getdTCov();
-    Eigen::Affine3d T_f1_fi =
+    Eigen::Affine3d T_f1_fim1 =
         frame1->getFrame2WorldTransform().inverse() * frames_to_add.at(1)->getFrame2WorldTransform();
 
     for (uint i = 2; i < frames_to_add.size(); i++) {
-
         Eigen::Affine3d T_fim1_fi = frames_to_add.at(i - 1)->getFrame2WorldTransform().inverse() *
                                     frames_to_add.at(i)->getFrame2WorldTransform();
 
+        // Jacobian formulas come from "A micro Lie Theory for state estimation in robotics" by Solà et al.
         Eigen::MatrixXd J_f1   = Eigen::MatrixXd::Identity(6, 6);
         J_f1.block<3, 3>(0, 0) = T_fim1_fi.rotation().transpose();
-        J_f1.block<3, 3>(3, 0) = T_f1_fi.rotation();
+        J_f1.block<3, 3>(0, 3) = -T_fim1_fi.rotation() * geometry::skewMatrix(T_fim1_fi.translation());
+        J_f1.block<3, 3>(3, 3) = T_fim1_fi.rotation().transpose();
 
         Eigen::MatrixXd J_dt   = Eigen::MatrixXd::Identity(6, 6);
-        J_dt.block<3, 3>(3, 3) = T_f1_fi.rotation().transpose();
 
-        T_f1_fi = frame1->getFrame2WorldTransform().inverse() * frames_to_add.at(i)->getFrame2WorldTransform();
-        cov     = J_f1 * cov * J_f1.transpose() + J_dt * frames_to_add.at(i)->getdTCov() * J_dt.transpose();
+        T_f1_fim1 = frame1->getFrame2WorldTransform().inverse() * frames_to_add.at(i)->getFrame2WorldTransform();
+        cov     = J_f1 * cov * J_f1.transpose() + J_dt * frames_to_add.at(i)->getdTCov() * J_dt.transpose();;
     }
     
     return true;
