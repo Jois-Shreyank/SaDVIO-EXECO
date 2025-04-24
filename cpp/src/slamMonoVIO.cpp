@@ -137,7 +137,7 @@ bool SLAMMonoVIO::init() {
     if (!_frame->getIMU()) {
 
         // Check if the _last_imu is in the future
-        while (_last_IMU->getFrame()->getTimestamp() > _frame->getTimestamp()) {
+        while (_last_IMU->_timestamp_imu > _frame->getTimestamp()) {
             _last_IMU = _last_IMU->getLastIMU();
         }
 
@@ -192,11 +192,6 @@ bool SLAMMonoVIO::init() {
     std::cout << "Orientation update : " << dRi << std::endl;
     std::cout << "Gyro bias : " << getLastKF()->getIMU()->getBg().transpose() << std::endl;
     std::cout << "Acc bias : " << getLastKF()->getIMU()->getBa().transpose() << std::endl;
-
-    std::cout << "IMU velo : "
-              << (_last_IMU->getFrame()->getFrame2WorldTransform().rotation().transpose() * _last_IMU->getVelocity())
-                     .transpose()
-              << std::endl;
     
     _frame->getIMU()->setVelocity(_last_IMU->getVelocity());
 
@@ -326,7 +321,7 @@ bool SLAMMonoVIO::step_init() {
         if (!_frame->getIMU()) {
 
             // Check if the _last_imu is in the future
-            while (_last_IMU->getFrame()->getTimestamp() > _frame->getTimestamp()) {
+            while (_last_IMU->_timestamp_imu > _frame->getTimestamp()) {
                 _last_IMU = _last_IMU->getLastIMU();
             }
 
@@ -415,7 +410,7 @@ bool SLAMMonoVIO::frontEndStep() {
 
     // Estimate the transformation between frames using IMU for the rotation and cst velocity for translation
     double dt          = (_frame->getTimestamp() - getLastKF()->getTimestamp()) * 1e-9;
-    Eigen::Affine3d dT = getLastKF()->getWorld2FrameTransform() * _last_IMU->getFrame()->getFrame2WorldTransform();
+    Eigen::Affine3d dT = getLastKF()->getWorld2FrameTransform() * _last_IMU->_T_f_w_imu.inverse();
     Eigen::Affine3d T_f_w =
         geometry::se3_Vec6dtoRT(_6d_velocity * dt).inverse() * getLastKF()->getWorld2FrameTransform();
     _frame->setWorld2FrameTransform(T_f_w);
@@ -524,7 +519,7 @@ bool SLAMMonoVIO::frontEndStep() {
         if (!_frame->getIMU()) {
 
             // Check if the _last_imu is in the future
-            while (_last_IMU->getFrame()->getTimestamp() > _frame->getTimestamp()) {
+            while (_last_IMU->_timestamp_imu > _frame->getTimestamp()) {
                 _last_IMU = _last_IMU->getLastIMU();
             }
 
@@ -553,8 +548,7 @@ bool SLAMMonoVIO::frontEndStep() {
         // - Reject outliers with reprojection error
         isae::timer::tic();
         initLandmarks(_frame);
-        ESKFEstimator eskf;
-        eskf.refineTriangulation(_frame);
+        _slam_param->getOptimizerFront()->landmarkOptimization(_frame);
         _avg_lmk_init_t = (_avg_lmk_init_t * (_nkeyframes - 1) + isae::timer::silentToc()) / _nkeyframes;
 
         // Repopulate in the case of klt tracking

@@ -17,7 +17,7 @@ SLAMCore::SLAMCore(std::shared_ptr<isae::SLAMParameters> slam_param) : _slam_par
                                             _slam_param->_config.fixed_frame_number);
     _global_map = std::make_shared<GlobalMap>();
     if (slam_param->_config.mesh3D)
-        _mesher     = std::make_shared<Mesher>(
+        _mesher = std::make_shared<Mesher>(
             _slam_param->_config.slam_mode, _slam_param->_config.ZNCC_tsh, _slam_param->_config.max_length_tsh);
 
     _avg_detect_t      = 0;

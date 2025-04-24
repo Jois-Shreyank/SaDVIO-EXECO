@@ -344,6 +344,12 @@ uint AngularAdjustmentCERESAnalytic::addMarginalizationResiduals(ceres::Problem 
 
     // Add marginalization factor, dense case
     if (!_marginalization->_lmk_to_keep.empty() && !_enable_sparsif) {
+
+        // Ignore if the frame to keep is not in the pb
+        if (_map_frame_posepar.find(_marginalization->_frame_to_keep) == _map_frame_posepar.end()) {
+            return 0;
+        }
+
         // Get parameter blocks for marginalization
         std::vector<double *> prior_parameter_blocks;
 
@@ -385,6 +391,11 @@ uint AngularAdjustmentCERESAnalytic::addMarginalizationResiduals(ceres::Problem 
 
     // Add marginalization factor, sparse case
     if (!_marginalization->_lmk_to_keep.empty() && _enable_sparsif) {
+
+        // Ignore if the frame to keep is not in the pb
+        if (_map_frame_posepar.find(_marginalization->_frame_to_keep) == _map_frame_posepar.end()) {
+            return 0;
+        }
 
         /// CASE 1 VIO ///
         if (_marginalization->_frame_to_keep) {

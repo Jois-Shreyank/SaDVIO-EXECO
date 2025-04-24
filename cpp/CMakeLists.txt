@@ -110,7 +110,8 @@ if(ISAESLAM_BUILD_TESTS)
     ./tests/marginalization_test.cpp
     ./tests/mesh_test.cpp
     ./tests/nofov_test.cpp
-    ./tests/residual_test.cpp)
+    ./tests/residual_test.cpp
+    ./tests/localmap_test.cpp)
   target_include_directories(isae_test PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)

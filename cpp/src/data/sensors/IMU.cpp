@@ -4,21 +4,24 @@ namespace isae {
 
 bool IMU::processIMU() {
 
-    if (!_last_kf || !_last_IMU || !_frame.lock()) {
+    if (!_last_kf.lock() || !_last_IMU || !_frame.lock()) {
         return false;
     }
 
     // Case of wrong sync, return false
-    if (_frame.lock()->getTimestamp() < _last_IMU->getFrame()->getTimestamp()) {
+    if (_frame.lock()->getTimestamp() < _last_IMU->_timestamp_imu) {
         return false;
     }
+
+    _timestamp_imu = _frame.lock()->getTimestamp();
+    _T_f_w_imu     = _frame.lock()->getWorld2FrameTransform();
 
     // Bias propagation
     _ba = _last_IMU->getBa();
     _bg = _last_IMU->getBg();
 
     // Compute increments
-    double dt = (_frame.lock()->getTimestamp() - _last_IMU->getFrame()->getTimestamp()) * 1e-9;
+    double dt = (_timestamp_imu - _last_IMU->_timestamp_imu) * 1e-9;
 
     if (dt > 1) {
         dt = 1 / _rate_hz;
@@ -28,14 +31,14 @@ bool IMU::processIMU() {
     Eigen::Vector3d dv  = (_last_IMU->getAcc() - _last_IMU->getBa()) * dt;
     Eigen::Vector3d dp  = (_last_IMU->getAcc() - _last_IMU->getBa()) * dt22;
     Eigen::Matrix3d dR  = geometry::exp_so3((_last_IMU->getGyr() - _last_IMU->getBg()) * dt);
-    Eigen::Matrix3d Jrk = geometry::so3_rightJacobian((_last_IMU->getGyr() - _last_kf->getIMU()->getBg()) * dt);
+    Eigen::Matrix3d Jrk = geometry::so3_rightJacobian((_last_IMU->getGyr() - _last_kf.lock()->getIMU()->getBg()) * dt);
 
     // Velocity update
-    Eigen::Matrix3d R_w_fp = _last_IMU->getFrame()->getFrame2WorldTransform().rotation();
+    Eigen::Matrix3d R_w_fp = _last_IMU->_T_f_w_imu.rotation().transpose();
     _v                     = _last_IMU->getVelocity() + R_w_fp * dv + g * dt;
 
     // Pose update
-    Eigen::Affine3d T_w_f            = _last_IMU->getFrame()->getWorld2FrameTransform().inverse();
+    Eigen::Affine3d T_w_f            = _last_IMU->_T_f_w_imu.inverse();
     T_w_f.affine().block(0, 0, 3, 3) = R_w_fp * dR;
     T_w_f.affine().block(0, 3, 3, 1) += _last_IMU->getVelocity() * dt + R_w_fp * dp + g * dt22;
     _frame.lock()->setWorld2FrameTransform(T_w_f.inverse());
@@ -47,45 +50,46 @@ bool IMU::processIMU() {
     B.block(6, 3, 3, 3) = _last_IMU->getDeltaR() * dt22;
 
     // Restart the pre integration if the last measurement is in a KF
-    if (_last_IMU->getFrame()->isKeyFrame()) {
-        _delta_p = dp;
-        _delta_v = dv;
-        _delta_R = dR;
-        _Sigma   = B * _eta.asDiagonal() * B.transpose();
-        _Sigma.block(6, 6, 3, 3) += 0.0001 * Eigen::Matrix3d::Identity() * dt; // integration cov
-        _J_dR_bg = -Jrk * dt;
-        _J_dv_ba = -Eigen::Matrix3d::Identity() * dt;
-        _J_dv_bg = Eigen::Matrix3d::Zero();
-        _J_dp_ba = -dt22 * Eigen::Matrix3d::Identity();
-        _J_dp_bg = Eigen::Matrix3d::Zero();
-
-    } else {
-
-        // Compute the deltas
-        _delta_R = _last_IMU->getDeltaR() * dR;
-        _delta_v = _last_IMU->getDeltaV() + _last_IMU->getDeltaR() * dv;
-        _delta_p = _last_IMU->getDeltaP() + _last_IMU->getDeltaV() * dt + _last_IMU->getDeltaR() * dp;
-
-        // For covariance computation
-        Eigen::MatrixXd A = Eigen::Matrix<double, 9, 9>::Identity();
-        Eigen::Matrix3d dR_dA =
-            _last_IMU->getDeltaR() * geometry::skewMatrix(_last_IMU->getAcc() - _last_kf->getIMU()->getBa());
-        A.block(0, 0, 3, 3) = dR.transpose();
-        A.block(3, 0, 3, 3) = -dR_dA * dt;
-        A.block(6, 0, 3, 3) = -dR_dA * dt22;
-        A.block(6, 3, 3, 3) = Eigen::Matrix3d::Identity() * dt;
-
-        // Compute the covariance
-        _Sigma = A * _last_IMU->getCov() * A.transpose() + B * _eta.asDiagonal() * B.transpose();
-        _Sigma.block(6, 6, 3, 3) += 0.0001 * Eigen::Matrix3d::Identity() * dt; // integration cov
-
-        // Compute the Jacobians w.r.t the bias
-        _J_dR_bg = dR.transpose() * _last_IMU->_J_dR_bg - Jrk * dt;
-        _J_dv_ba = _last_IMU->_J_dv_ba - _last_IMU->getDeltaR() * dt;
-        _J_dv_bg = _last_IMU->_J_dv_bg - dR_dA * _last_IMU->_J_dR_bg * dt;
-        _J_dp_ba = _last_IMU->_J_dp_ba + _last_IMU->_J_dv_ba * dt - dt22 * _last_IMU->getDeltaR();
-        _J_dp_bg = _last_IMU->_J_dp_bg + _last_IMU->_J_dv_bg * dt - dt22 * dR_dA * _last_IMU->_J_dR_bg;
+    if (_last_IMU->getFrame()) {
+        if (_last_IMU->getFrame()->isKeyFrame()) {
+            _delta_p = dp;
+            _delta_v = dv;
+            _delta_R = dR;
+            _Sigma   = B * _eta.asDiagonal() * B.transpose();
+            _Sigma.block(6, 6, 3, 3) += 0.0001 * Eigen::Matrix3d::Identity() * dt; // integration cov
+            _J_dR_bg = -Jrk * dt;
+            _J_dv_ba = -Eigen::Matrix3d::Identity() * dt;
+            _J_dv_bg = Eigen::Matrix3d::Zero();
+            _J_dp_ba = -dt22 * Eigen::Matrix3d::Identity();
+            _J_dp_bg = Eigen::Matrix3d::Zero();
+            return true;
+        }
     }
+
+    // Compute the deltas
+    _delta_R = _last_IMU->getDeltaR() * dR;
+    _delta_v = _last_IMU->getDeltaV() + _last_IMU->getDeltaR() * dv;
+    _delta_p = _last_IMU->getDeltaP() + _last_IMU->getDeltaV() * dt + _last_IMU->getDeltaR() * dp;
+
+    // For covariance computation
+    Eigen::MatrixXd A = Eigen::Matrix<double, 9, 9>::Identity();
+    Eigen::Matrix3d dR_dA =
+        _last_IMU->getDeltaR() * geometry::skewMatrix(_last_IMU->getAcc() - _last_kf.lock()->getIMU()->getBa());
+    A.block(0, 0, 3, 3) = dR.transpose();
+    A.block(3, 0, 3, 3) = -dR_dA * dt;
+    A.block(6, 0, 3, 3) = -dR_dA * dt22;
+    A.block(6, 3, 3, 3) = Eigen::Matrix3d::Identity() * dt;
+
+    // Compute the covariance
+    _Sigma = A * _last_IMU->getCov() * A.transpose() + B * _eta.asDiagonal() * B.transpose();
+    _Sigma.block(6, 6, 3, 3) += 0.0001 * Eigen::Matrix3d::Identity() * dt; // integration cov
+
+    // Compute the Jacobians w.r.t the bias
+    _J_dR_bg = dR.transpose() * _last_IMU->_J_dR_bg - Jrk * dt;
+    _J_dv_ba = _last_IMU->_J_dv_ba - _last_IMU->getDeltaR() * dt;
+    _J_dv_bg = _last_IMU->_J_dv_bg - dR_dA * _last_IMU->_J_dR_bg * dt;
+    _J_dp_ba = _last_IMU->_J_dp_ba + _last_IMU->_J_dv_ba * dt - dt22 * _last_IMU->getDeltaR();
+    _J_dp_bg = _last_IMU->_J_dp_bg + _last_IMU->_J_dv_bg * dt - dt22 * dR_dA * _last_IMU->_J_dR_bg;
 
     return true;
 }
@@ -108,11 +112,11 @@ void IMU::biasDeltaCorrection(Eigen::Vector3d d_ba, Eigen::Vector3d d_bg) {
 }
 
 void IMU::updateBiases() {
-    if (!_last_kf->getIMU())
+    if (!_last_kf.lock()->getIMU())
         return;
 
-    _ba = _last_kf->getIMU()->getBa();
-    _bg = _last_kf->getIMU()->getBg();
+    _ba = _last_kf.lock()->getIMU()->getBa();
+    _bg = _last_kf.lock()->getIMU()->getBg();
 }
 
 } // namespace isae

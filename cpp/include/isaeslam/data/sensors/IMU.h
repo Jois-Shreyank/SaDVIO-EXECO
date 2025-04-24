@@ -45,11 +45,10 @@ class IMU : public ASensor {
     Eigen::Vector3d getAcc() { return _acc; }
     Eigen::Vector3d getGyr() { return _gyr; }
 
-    // This is a dirty trick to avoid that the shared_ptr of the frame desapear in the recursive process
-    // TO DO: is there a better way? Maybe storing the variable of interest in an IMU object
-    void setCurFrame(std::shared_ptr<Frame> frame) {
-        _cur_frame = frame;
-    }
+    // Variables to avoid dependency on the frame
+    unsigned long long _timestamp_imu;
+    Eigen::Affine3d _T_f_w_imu;
+    
     void setBa(Eigen::Vector3d ba) {
         std::lock_guard<std::mutex> lock(_imu_mtx);
         _ba = ba;
@@ -113,7 +112,10 @@ class IMU : public ASensor {
     }
     std::shared_ptr<Frame> getLastKF() {
         std::lock_guard<std::mutex> lock(_imu_mtx);
-        return _last_kf;
+        if (_last_kf.lock())
+            return _last_kf.lock();
+        else
+            return nullptr;
     }
     void setLastIMU(std::shared_ptr<IMU> imu) {
         std::lock_guard<std::mutex> lock(_imu_mtx);
@@ -169,8 +171,7 @@ class IMU : public ASensor {
     Eigen::MatrixXd _Sigma;
 
     std::shared_ptr<IMU> _last_IMU;
-    std::shared_ptr<Frame> _last_kf;
-    std::shared_ptr<Frame> _cur_frame; 
+    std::weak_ptr<Frame> _last_kf;
 
     // Mutex
     mutable std::mutex _imu_mtx;

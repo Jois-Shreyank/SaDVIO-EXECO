@@ -203,13 +203,18 @@ bool ESKFEstimator::refineTriangulation(std::shared_ptr<Frame> &frame) {
                 continue;
 
             Eigen::Matrix3d intrinsic = Eigen::Matrix3d::Identity();
-            Eigen::Matrix2d R         = Eigen::Matrix2d::Identity();
+            Eigen::Matrix2d R         = 0.01 * Eigen::Matrix2d::Identity();
             Eigen::Matrix3d P         = Eigen::Matrix3d::Identity();
             Eigen::Vector3d t_w_lmk   = landmark->getPose().translation();
 
             // For all features
             std::vector<std::weak_ptr<AFeature>> featuresAssociatedLandmarks = landmark->getFeatures();
+
+            std::vector<Eigen::Vector2d> err_vec;
+            std::vector<Eigen::MatrixXd> J_p_vec;
+
             for (std::weak_ptr<AFeature> &wfeature : featuresAssociatedLandmarks) {
+
                 std::shared_ptr<AFeature> feature = wfeature.lock();
                 if (!feature)
                     continue;
@@ -228,22 +233,34 @@ bool ESKFEstimator::refineTriangulation(std::shared_ptr<Frame> &frame) {
                     jac_projection(intrinsic, t_w_lmk, T_s_w.linear(), T_s_w.translation(), Eigen::Vector3d::Zero());
                 Eigen::Vector2d err = ray_cam_h - proj;
 
-                // Kalman Equations
-                Eigen::Matrix<double, 3, 2> K = P * J_p.transpose() * (J_p * P * J_p.transpose() + R).inverse();
-                Eigen::Vector3d dx            = K * err;
-                P                             = (Eigen::Matrix3d::Identity() - K * J_p) * P;
-
-                // Update
-                t_w_lmk = t_w_lmk + dx;
+                err_vec.push_back(err);
+                J_p_vec.push_back(J_p);
             }
+
+            int n_feat          = err_vec.size();
+            Eigen::VectorXd err = Eigen::VectorXd::Zero(2 * n_feat);
+            Eigen::MatrixXd J_p = Eigen::MatrixXd::Zero(2 * n_feat, 3);
+            Eigen::MatrixXd K   = Eigen::MatrixXd::Zero(3, 2 * n_feat);
+
+            for (int k = 0; k < n_feat; ++k) {
+                err.segment<2>(2 * k)     = err_vec[k];
+                J_p.block<2, 3>(2 * k, 0) = J_p_vec[k];
+            }
+
+            // Kalman Equations
+            K                  = P * J_p.transpose() * (J_p * P * J_p.transpose() + R).inverse();
+            Eigen::Vector3d dx = K * err;
+            P                  = (Eigen::Matrix3d::Identity() - K * J_p) * P;
+
+            // Update
+            t_w_lmk = t_w_lmk + dx;
 
             // Update the landmark and check if it is valid
             landmark->setPosition(t_w_lmk);
             landmark->sanityCheck();
-
         }
     }
-    
+
     return true;
 }
 

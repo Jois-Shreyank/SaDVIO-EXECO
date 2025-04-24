@@ -207,8 +207,7 @@ bool SLAMBiMono::frontEndStep() {
         // - Reject outliers with reprojection error
         isae::timer::tic();
         initLandmarks(_frame);
-        ESKFEstimator eskf;
-        eskf.refineTriangulation(_frame);
+        _slam_param->getOptimizerFront()->landmarkOptimization(_frame);
         _avg_lmk_init_t = (_avg_lmk_init_t * (_nkeyframes - 1) + isae::timer::silentToc()) / _nkeyframes;
 
         // Wait the end of optim
