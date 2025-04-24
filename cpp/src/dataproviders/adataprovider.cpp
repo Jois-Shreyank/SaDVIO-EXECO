@@ -75,6 +75,7 @@ void ADataProvider::loadIMUConfig(YAML::Node imu_node) {
     _imu_config->bacc_noise = imu_node["accelerometer_random_walk"].as<double>();
     _imu_config->bgyr_noise = imu_node["accelerometer_random_walk"].as<double>();
     _imu_config->rate_hz    = imu_node["rate_hz"].as<double>();
+    _imu_config->dt_imu_cam = imu_node["dt_imu_cam"].as<double>();
 }
 
 void ADataProvider::loadCamConfig(YAML::Node cam_node) {

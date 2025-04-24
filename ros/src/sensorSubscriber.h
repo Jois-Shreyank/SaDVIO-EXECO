@@ -153,7 +153,7 @@ class SensorSubscriber : public rclcpp::Node {
             // IMU message
             if (!_imu_buf.empty()) {
                 t_curr = _imu_buf.front().header.stamp.sec * 1e9 + _imu_buf.front().header.stamp.nanosec;
-                // t_curr += 0.004486636586849766 * 1e9;
+                t_curr -= _prov->getIMUConfig()->dt_imu_cam * 1e9;
 
                 // Check if this measurement can be added to the current frame
                 if (std::abs(t_curr - t_last) * 1e-9 > time_tolerance && !sensors.empty()) {

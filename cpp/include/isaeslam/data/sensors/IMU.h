@@ -13,6 +13,7 @@ struct imu_config : sensor_config {
     double acc_noise;
     double bacc_noise;
     double rate_hz;
+    double dt_imu_cam;
 };
 
 class IMU : public ASensor {
