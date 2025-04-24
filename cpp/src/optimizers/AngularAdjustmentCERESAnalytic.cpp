@@ -218,14 +218,10 @@ uint AngularAdjustmentCERESAnalytic::addResidualsLocalMap(ceres::Problem &proble
 
     uint nb_residuals = 0;
 
-    // Add parameter block and ordering for each frame parameter
-    for (size_t i = 0; i < frame_vector.size(); i++) {
-        _map_frame_posepar.emplace(frame_vector.at(i), PoseParametersBlock(Eigen::Affine3d::Identity()));
-    }
-
     for (size_t i = 0; i < frame_vector.size(); i++) {
 
         std::shared_ptr<Frame> frame = frame_vector.at(i);
+        _map_frame_posepar.emplace(frame, PoseParametersBlock(Eigen::Affine3d::Identity()));
 
         problem.AddParameterBlock(_map_frame_posepar.at(frame).values(), 6);
         ordering->AddElementToGroup(_map_frame_posepar.at(frame).values(), 1);

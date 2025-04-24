@@ -450,16 +450,6 @@ bool SLAMCore::predict(std::shared_ptr<Frame> &f) {
         if (_slam_param->_config.pose_estimator != "pnp")
             T_last_curr = T_const;
 
-        // Check constant translation velocity assumption at 1000% (only if there is enough motion)
-        if ((T_const.translation().norm() > 0.01 && T_last_curr.translation().norm() > 0.01) &&
-            (T_const.translation() - T_last_curr.translation()).norm() / T_last_curr.translation().norm() > 10) {
-            std::cout << "Constant velocity model failed FORCE IT " << std::endl;
-            std::cout << "previous = " << std::endl << T_const.matrix() << std::endl;
-            T_last_curr = T_const;
-            f->setWorld2FrameTransform(T_last_curr.inverse() * getLastKF()->getWorld2FrameTransform());
-            return false;
-        }
-
         f->setWorld2FrameTransform(T_last_curr.inverse() * getLastKF()->getWorld2FrameTransform());
 
         return true;
