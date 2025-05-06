@@ -112,11 +112,14 @@ void IMU::biasDeltaCorrection(Eigen::Vector3d d_ba, Eigen::Vector3d d_bg) {
 }
 
 void IMU::updateBiases() {
-    if (!_last_kf.lock()->getIMU())
+    
+    if (!_last_kf.lock())
         return;
-
-    _ba = _last_kf.lock()->getIMU()->getBa();
-    _bg = _last_kf.lock()->getIMU()->getBg();
+    
+    if (_last_kf.lock()->getIMU()) {
+        _last_kf.lock()->getIMU()->setBa(_ba);
+        _last_kf.lock()->getIMU()->setBg(_bg);
+    }
 }
 
 } // namespace isae
