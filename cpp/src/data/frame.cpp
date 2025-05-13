@@ -95,6 +95,8 @@ void Frame::cleanLandmarks() {
                     f->getLandmark().lock()->removeExpiredFeatures();
                 }
             }
+            // Clear the features
+            typed_fs.second.clear();
         }
     }
 }

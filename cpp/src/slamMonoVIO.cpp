@@ -298,15 +298,12 @@ bool SLAMMonoVIO::step_init() {
             (geometry::se3_RTtoVec6d(getLastKF()->getWorld2FrameTransform() * _frame->getFrame2WorldTransform())) / dt;
 
     } else {
+        // If the prediction is wrong, we must restart the initialization
 
-        // If the prediction is wrong, we reinitialize the odometry from the last KF:
-        // - A KF is voted
-        // - All matches in time are removed
-        // Can be improved: redetect new points, retrack old features....
+        _is_init = false;
+        _local_map->reset();
 
-        outlierRemoval();
-        detectFeatures(_frame->getSensors().at(0));
-        _frame->setKeyFrame();
+        return false;
     }
 
     if (dt > 0.25)

@@ -72,7 +72,9 @@ bool SLAMBiMonoVIO::init() {
     // detect all features on all sensors
     detectFeatures(_frame->getSensors().at(0));
 
-    // Track features in frame
+    // Track features in frame (and clear matches in time)
+    _matches_in_time.clear();
+    _matches_in_time_lmk.clear();
     trackFeatures(_frame->getSensors().at(0),
                   _frame->getSensors().at(1),
                   _matches_in_frame,
@@ -91,8 +93,10 @@ bool SLAMBiMonoVIO::init() {
     detectFeatures(_frame->getSensors().at(0));
 
     // Perform Local BA on 10 KF before optimizing inertial variables
-    while (_local_map->getFrames().size() < 10)
-        step_init();
+    while (_local_map->getFrames().size() < 10) {
+        if (!step_init())
+            return false;
+    }
 
     // Launch optimization of the inertial variables
     Eigen::Matrix3d dRi;
@@ -208,15 +212,12 @@ bool SLAMBiMonoVIO::step_init() {
             (geometry::se3_RTtoVec6d(getLastKF()->getWorld2FrameTransform() * _frame->getFrame2WorldTransform())) / dt;
 
     } else {
+        // If the prediction is wrong, we must restart the initialization
 
-        // If the prediction is wrong, we reinitialize the odometry from the last KF:
-        // - A KF is voted
-        // - All matches in time are removed
-        // Can be improved: redetect new points, retrack old features....
+        _is_init = false;
+        _local_map->reset();
 
-        outlierRemoval();
-        detectFeatures(_frame->getSensors().at(0));
-        _frame->setKeyFrame();
+        return false;
     }
 
     // Force a KF to prevent the IMU to drift

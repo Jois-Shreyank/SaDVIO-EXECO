@@ -85,8 +85,14 @@ void LocalMap::removeEmptyLandmarks() {
 
 void LocalMap::reset() {
     _localmap_mtx.lock();
+    for (auto &frame : _frames) {
+        frame->cleanLandmarks();
+        frame->cleanSensors();
+    }
     _frames.clear();
-    _landmarks.clear();
+    for (auto &tlmks : _landmarks) {
+        tlmks.second.clear();
+    }
     _localmap_mtx.unlock();
 }
 
