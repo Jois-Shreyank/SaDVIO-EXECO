@@ -13,8 +13,12 @@ namespace isae {
 class AOptimizer {
   public:
     AOptimizer() {
-
         // Init marginalization variables
+        _marginalization      = std::make_shared<Marginalization>();
+        _marginalization_last = std::make_shared<Marginalization>();
+    };
+
+    void resetMarginalization() {
         _marginalization      = std::make_shared<Marginalization>();
         _marginalization_last = std::make_shared<Marginalization>();
     };
