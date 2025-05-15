@@ -29,8 +29,10 @@ void Frame::init(std::shared_ptr<IMU> &imu, unsigned long long timestamp) {
     _frame_count++;
     _id = _frame_count;
 
-    _imu       = imu;
+    _imu = imu;
     _imu->setFrame(this->shared_from_this());
+    _imu->_T_w_f_imu     = Eigen::Affine3d::Identity();
+    _imu->_timestamp_imu = timestamp;
 }
 
 void Frame::init(const std::vector<std::shared_ptr<ASensor>> &sensors, unsigned long long timestamp) {
@@ -43,7 +45,9 @@ void Frame::init(const std::vector<std::shared_ptr<ASensor>> &sensors, unsigned 
 
     for (auto sensor : sensors) {
         if (sensor->getType() == "imu") {
-            _imu = std::static_pointer_cast<IMU>(sensor);
+            _imu                 = std::static_pointer_cast<IMU>(sensor);
+            _imu->_T_w_f_imu     = Eigen::Affine3d::Identity();
+            _imu->_timestamp_imu = timestamp;
         }
         if (sensor->getType() == "image") {
             _sensors.push_back(std::static_pointer_cast<ImageSensor>(sensor));
@@ -56,6 +60,8 @@ void Frame::setIMU(std::shared_ptr<IMU> &imu, Eigen::Affine3d T_s_f) {
     _imu = imu;
     _imu->setFrame(this->shared_from_this());
     _imu->setFrame2SensorTransform(T_s_f);
+    _imu->_T_w_f_imu     = _T_f_w.inverse();
+    _imu->_timestamp_imu = _timestamp;
 }
 
 uint Frame::getInMapLandmarksNumber() const {

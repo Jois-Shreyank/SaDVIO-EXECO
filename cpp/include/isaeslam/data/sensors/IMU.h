@@ -48,7 +48,7 @@ class IMU : public ASensor {
 
     // Variables to avoid dependency on the frame
     unsigned long long _timestamp_imu;
-    Eigen::Affine3d _T_f_w_imu;
+    Eigen::Affine3d _T_w_f_imu;
     
     void setBa(Eigen::Vector3d ba) {
         std::lock_guard<std::mutex> lock(_imu_mtx);

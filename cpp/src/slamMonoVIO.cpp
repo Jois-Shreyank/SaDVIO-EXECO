@@ -407,7 +407,7 @@ bool SLAMMonoVIO::frontEndStep() {
 
     // Estimate the transformation between frames using IMU for the rotation and cst velocity for translation
     double dt          = (_frame->getTimestamp() - getLastKF()->getTimestamp()) * 1e-9;
-    Eigen::Affine3d dT = getLastKF()->getWorld2FrameTransform() * _last_IMU->_T_f_w_imu.inverse();
+    Eigen::Affine3d dT = getLastKF()->getWorld2FrameTransform() * _last_IMU->_T_w_f_imu;
     Eigen::Affine3d T_f_w =
         geometry::se3_Vec6dtoRT(_6d_velocity * dt).inverse() * getLastKF()->getWorld2FrameTransform();
     _frame->setWorld2FrameTransform(T_f_w);

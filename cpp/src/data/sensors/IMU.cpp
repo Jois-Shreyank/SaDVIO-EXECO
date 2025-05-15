@@ -13,9 +13,12 @@ bool IMU::processIMU() {
         return false;
     }
 
-    _timestamp_imu = _frame.lock()->getTimestamp();
-    _T_f_w_imu     = _frame.lock()->getWorld2FrameTransform();
+    // Update last IMU pose if available
+    if (_last_IMU->getFrame()) {
+        _last_IMU->_T_w_f_imu = _last_IMU->getFrame()->getFrame2WorldTransform();
+    }
 
+    _timestamp_imu = _frame.lock()->getTimestamp();
     // Bias propagation
     _ba = _last_IMU->getBa();
     _bg = _last_IMU->getBg();
@@ -34,15 +37,16 @@ bool IMU::processIMU() {
     Eigen::Matrix3d Jrk = geometry::so3_rightJacobian((_last_IMU->getGyr() - _last_kf.lock()->getIMU()->getBg()) * dt);
 
     // Velocity update
-    Eigen::Matrix3d R_w_fp = _last_IMU->_T_f_w_imu.rotation().transpose();
+    Eigen::Matrix3d R_w_fp = _last_IMU->_T_w_f_imu.rotation();
     _v                     = _last_IMU->getVelocity() + R_w_fp * dv + g * dt;
 
     // Pose update
-    Eigen::Affine3d T_w_f            = _last_IMU->_T_f_w_imu.inverse();
+    Eigen::Affine3d T_w_f            = _last_IMU->_T_w_f_imu;
     T_w_f.affine().block(0, 0, 3, 3) = R_w_fp * dR;
     T_w_f.affine().block(0, 3, 3, 1) += _last_IMU->getVelocity() * dt + R_w_fp * dp + g * dt22;
     _frame.lock()->setWorld2FrameTransform(T_w_f.inverse());
-
+    _T_w_f_imu     = _frame.lock()->getFrame2WorldTransform();
+    
     // For covariance computation
     Eigen::MatrixXd B   = Eigen::Matrix<double, 9, 6>::Zero();
     B.block(0, 0, 3, 3) = Jrk * dt;
