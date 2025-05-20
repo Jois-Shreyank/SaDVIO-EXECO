@@ -474,7 +474,7 @@ bool SLAMMonoVIO::frontEndStep() {
         // Single Frame ESKF Update
         isae::timer::tic();
         
-        Eigen::MatrixXd cov;
+        Eigen::MatrixXd cov = Eigen::MatrixXd::Identity(6, 6);
         Eigen::Affine3d T_last_curr, T_w_f;
         T_last_curr = getLastKF()->getWorld2FrameTransform() * _frame->getFrame2WorldTransform();
         ESKFEstimator eskf;

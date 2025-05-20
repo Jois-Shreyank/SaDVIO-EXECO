@@ -116,7 +116,7 @@ bool LocalMap::computeRelativePose(std::shared_ptr<isae::Frame> &frame1,
         }
     }
 
-    // If we haven't found at least 2 KF, return false 
+    // If we haven't found at least 2 KF, return false
     if (frames_to_add.size() < 2) {
         return false;
     }
@@ -136,12 +136,21 @@ bool LocalMap::computeRelativePose(std::shared_ptr<isae::Frame> &frame1,
         J_f1.block<3, 3>(0, 3) = -T_fim1_fi.rotation() * geometry::skewMatrix(T_fim1_fi.translation());
         J_f1.block<3, 3>(3, 3) = T_fim1_fi.rotation().transpose();
 
-        Eigen::MatrixXd J_dt   = Eigen::MatrixXd::Identity(6, 6);
+        Eigen::MatrixXd J_dt = Eigen::MatrixXd::Identity(6, 6);
 
         T_f1_fim1 = frame1->getFrame2WorldTransform().inverse() * frames_to_add.at(i)->getFrame2WorldTransform();
-        cov     = J_f1 * cov * J_f1.transpose() + J_dt * frames_to_add.at(i)->getdTCov() * J_dt.transpose();;
+        if (cov.rows() != 6 && cov.cols() != 6) {
+            cov = Eigen::MatrixXd::Identity(6, 6);
+            return false;
+        }
+        cov = J_f1 * cov * J_f1.transpose() + J_dt * frames_to_add.at(i)->getdTCov() * J_dt.transpose();
     }
-    
+
+    if (cov.rows() != 6 && cov.cols() != 6) {
+        cov = Eigen::MatrixXd::Identity(6, 6);
+        return false;
+    }
+
     return true;
 }
 
