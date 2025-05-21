@@ -25,6 +25,21 @@ void LocalMap::addFrame(std::shared_ptr<isae::Frame> &frame) {
     }
 }
 
+void LocalMap::removeFrame(std::shared_ptr<isae::Frame> &frame) {
+    // Remove the frame from the local map
+    _localmap_mtx.lock();
+    for (auto it = _frames.begin(); it != _frames.end(); ++it) {
+        if (*it == frame) {
+            it->get()->cleanLandmarks();
+            it->get()->cleanSensors();
+            _frames.erase(it);
+            break;
+        }
+    }
+    _localmap_mtx.unlock();
+    _margin_flag = false;
+}
+
 void LocalMap::discardLastFrame() {
 
     // Discard features from the marginalized frame

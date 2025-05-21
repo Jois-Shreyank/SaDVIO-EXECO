@@ -402,6 +402,7 @@ bool SLAMCore::shouldInsertKeyframe(std::shared_ptr<Frame> &f) {
 
     avg_parallax /= (n_matches + n_matches_lmk);
     avg_parallax *= 180 / M_PI;
+    _parallax = avg_parallax;
 
     // Check conditions to vote for a KF or not
 

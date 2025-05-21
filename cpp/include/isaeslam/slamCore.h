@@ -120,6 +120,7 @@ class SLAMCore {
     double _max_movement_parallax;
     double _min_movement_parallax;
     double _min_lmk_number;
+    double _parallax;
 
     // To ensure safe communication between threads
     std::mutex _map_mutex;

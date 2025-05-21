@@ -121,9 +121,9 @@ bool SLAMMonoVIO::init() {
         }
         avg_parallax = avg_parallax * 180 / M_PI;
 
-        if (avg_parallax > 4) 
+        if (avg_parallax > 4)
             ready_to_init = true;
-        
+
         // Compute current pose (with an arbitrary 10 cm scale)
         Eigen::Affine3d T_w_f = getLastKF()->getFrame2WorldTransform() * T_last_curr;
         T_w_f.translation() /= 10;
@@ -192,13 +192,13 @@ bool SLAMMonoVIO::init() {
     std::cout << "Orientation update : " << dRi << std::endl;
     std::cout << "Gyro bias : " << getLastKF()->getIMU()->getBg().transpose() << std::endl;
     std::cout << "Acc bias : " << getLastKF()->getIMU()->getBa().transpose() << std::endl;
-    
+
     _frame->getIMU()->setVelocity(_last_IMU->getVelocity());
 
     // Set pb init
     _nkeyframes++;
-    _is_init        = true;
-    _frame_to_optim = _frame;
+    _is_init          = true;
+    _frame_to_optim   = _frame;
     _successive_fails = 0;
 
     return true;
@@ -473,7 +473,7 @@ bool SLAMMonoVIO::frontEndStep() {
 
         // Single Frame ESKF Update
         isae::timer::tic();
-        
+
         Eigen::MatrixXd cov = Eigen::MatrixXd::Identity(6, 6);
         Eigen::Affine3d T_last_curr, T_w_f;
         T_last_curr = getLastKF()->getWorld2FrameTransform() * _frame->getFrame2WorldTransform();
@@ -534,17 +534,13 @@ bool SLAMMonoVIO::frontEndStep() {
 
         _frame->getIMU()->estimateTransform(getLastKF(), _frame, dT);
 
-        std::cout << "IMU dT : \n" << dT.matrix() << std::endl;
-        std::cout << "pnp dT : \n"
-                  << (getLastKF()->getWorld2FrameTransform() * _frame->getFrame2WorldTransform()).matrix() << "\n ---"
-                  << std::endl;
-
         // Landmark Initialization:
         // - Triangulate new points : LR + (n-1) / n
         // - Optimize points only because optimal mid-point is not optimal for LM
         // - Reject outliers with reprojection error
         isae::timer::tic();
-        initLandmarks(_frame);
+        if (_parallax > 0.5)
+            initLandmarks(_frame);
         _slam_param->getOptimizerFront()->landmarkOptimization(_frame);
         _avg_lmk_init_t = (_avg_lmk_init_t * (_nkeyframes - 1) + isae::timer::silentToc()) / _nkeyframes;
 
@@ -600,18 +596,21 @@ bool SLAMMonoVIO::backEndStep() {
         // Add frame to local map
         _local_map->addFrame(_frame_to_optim);
 
-        // Marginalization (+ sparsification) of the last frame
+        // Marginalization of the last frame or of an intermediary frame if not enough parallax
         if (_local_map->getMarginalizationFlag()) {
             isae::timer::tic();
-            if (_slam_param->_config.marginalization == 1)
-                _slam_param->getOptimizerBack()->marginalize(_local_map->getFrames().at(0),
-                                                             _local_map->getFrames().at(1),
-                                                             _slam_param->_config.sparsification == 1);
-            _avg_marg_t = (_avg_marg_t * (_nkeyframes - 1) + isae::timer::silentToc()) / _nkeyframes;
-            _global_map->addFrame(_local_map->getFrames().at(0));
-            _map_mutex.lock();
-            _local_map->discardLastFrame();
-            _map_mutex.unlock();
+
+            if (_parallax < 0.5) {
+                _frame_to_optim->getIMU()->setLastKF(nullptr);
+                _local_map->removeFrame(_local_map->getFrames().at(_local_map->getFrames().size() - 2));
+                _nkeyframes--;
+            } else {
+                _global_map->addFrame(_local_map->getFrames().at(0));
+                _map_mutex.lock();
+                _local_map->discardLastFrame();
+                _map_mutex.unlock();
+            }
+
         }
 
         // Optimize Local Map

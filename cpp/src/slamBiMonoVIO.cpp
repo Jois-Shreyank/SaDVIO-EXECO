@@ -567,16 +567,23 @@ bool SLAMBiMonoVIO::backEndStep() {
         // Marginalization (+ sparsification) of the last frame
         isae::timer::tic();
         if (_local_map->getMarginalizationFlag()) {
-            if (_slam_param->_config.marginalization == 1)
-                _slam_param->getOptimizerBack()->marginalize(_local_map->getFrames().at(0),
-                                                             _local_map->getFrames().at(1),
-                                                             _slam_param->_config.sparsification == 1);
 
-            // Uncomment below to enable global map
-            // _global_map->addFrame(_local_map->getFrames().at(0));
-            _map_mutex.lock();
-            _local_map->discardLastFrame();
-            _map_mutex.unlock();
+            if (_parallax < 0.5) {
+                _frame_to_optim->getIMU()->setLastKF(nullptr);
+                _local_map->removeFrame(_local_map->getFrames().at(_local_map->getFrames().size() - 2));
+                _nkeyframes--;
+            } else {
+                if (_slam_param->_config.marginalization == 1)
+                    _slam_param->getOptimizerBack()->marginalize(_local_map->getFrames().at(0),
+                                                                 _local_map->getFrames().at(1),
+                                                                 _slam_param->_config.sparsification == 1);
+
+                // Uncomment below to enable global map
+                // _global_map->addFrame(_local_map->getFrames().at(0));
+                _map_mutex.lock();
+                _local_map->discardLastFrame();
+                _map_mutex.unlock();
+            }
         }
 
         float marg_dt = isae::timer::silentToc();

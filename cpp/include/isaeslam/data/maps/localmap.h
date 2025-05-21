@@ -10,6 +10,7 @@ class LocalMap : public AMap {
     LocalMap() = default;
     LocalMap(size_t min_kf_number, size_t max_kf_number, size_t fixedFrameNumber);
     void addFrame(std::shared_ptr<Frame> &frame) override;
+    void removeFrame(std::shared_ptr<Frame> &frame);
 
     size_t getWindowSize() { return _max_kf_number; }
     size_t getFixedFrameNumber() { return _fixed_frames_number; }
