@@ -14,6 +14,8 @@ class LocalMap : public AMap {
 
     size_t getWindowSize() { return _max_kf_number; }
     size_t getFixedFrameNumber() { return _fixed_frames_number; }
+    std::vector<Eigen::Affine3d> &getOldFramesPoses() { return _removed_frame_poses; }
+
     bool computeRelativePose(std::shared_ptr<Frame> &frame1,
                              std::shared_ptr<Frame> &frame2,
                              Eigen::Affine3d &T_f1_f2,
@@ -23,7 +25,6 @@ class LocalMap : public AMap {
     void reset();
 
   protected:
-    void pushLandmarks(std::shared_ptr<Frame> &frame) override;
     void removeEmptyLandmarks();
 
     // Parameters of the local map and KF selector (overwrote by value in config file)
@@ -31,6 +32,7 @@ class LocalMap : public AMap {
     size_t _max_kf_number       = 7; // size of the sliding window
     size_t _fixed_frames_number = 1; // number of frame that remain static during windowed BA
     bool _margin_flag;               // flag raised if the the last frame needs to be marginalized
+    std::vector<Eigen::Affine3d> _removed_frame_poses; // old frames
 
     mutable std::mutex _localmap_mtx;
 };

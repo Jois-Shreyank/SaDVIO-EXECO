@@ -169,21 +169,4 @@ bool LocalMap::computeRelativePose(std::shared_ptr<isae::Frame> &frame1,
     return true;
 }
 
-void LocalMap::pushLandmarks(std::shared_ptr<isae::Frame> &frame) {
-    typed_vec_landmarks all_ldmks = frame->getLandmarks();
-
-    // For all type of landmarks to add
-    for (auto &typed_ldmks : all_ldmks) {
-        for (auto &ldmk : typed_ldmks.second) {
-            if (!(!ldmk->isInitialized() || ldmk->isInMap() || ldmk->getFeatures().empty())) {
-                ldmk->setInMap();
-
-                _localmap_mtx.lock();
-                _landmarks[ldmk->getLandmarkLabel()].push_back(ldmk);
-                _localmap_mtx.unlock();
-            }
-        }
-    }
-}
-
 } // namespace isae
