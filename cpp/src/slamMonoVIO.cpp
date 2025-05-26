@@ -539,7 +539,7 @@ bool SLAMMonoVIO::frontEndStep() {
         // - Optimize points only because optimal mid-point is not optimal for LM
         // - Reject outliers with reprojection error
         isae::timer::tic();
-        if (_parallax > 0.5)
+        if (_parallax > 0.5) // Ignore landmark initialization if not enough parallax (mono)
             initLandmarks(_frame);
         _slam_param->getOptimizerFront()->landmarkOptimization(_frame);
         _avg_lmk_init_t = (_avg_lmk_init_t * (_nkeyframes - 1) + isae::timer::silentToc()) / _nkeyframes;
@@ -620,7 +620,7 @@ bool SLAMMonoVIO::backEndStep() {
 
         // Update current IMU biases after optimization
         _frame_to_optim->getIMU()->updateBiases();
-
+        
         // profiling
         profiling();
 

@@ -10,18 +10,4 @@ void GlobalMap::addFrame(std::shared_ptr<isae::Frame> &frame) {
     this->pushLandmarks(frame);
 }
 
-void GlobalMap::pushLandmarks(std::shared_ptr<isae::Frame> &frame) {
-    typed_vec_landmarks all_ldmks = frame->getLandmarks();
-
-    // For all type of landmarks to add
-    for (auto &typed_ldmks : all_ldmks) {
-        for (auto &ldmk : typed_ldmks.second) {
-            if (!(!ldmk->isInitialized() || ldmk->getFeatures().empty())) {
-                ldmk->setInMap();
-                _landmarks[ldmk->getLandmarkLabel()].push_back(ldmk);
-            }
-        }
-    }
-}
-
 } // namespace isae

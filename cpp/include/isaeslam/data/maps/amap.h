@@ -17,7 +17,6 @@ class AMap {
 
     // getters
     std::deque<std::shared_ptr<Frame>> &getFrames() { return _frames; }
-    std::vector<Eigen::Affine3d> &getOldFramesPoses() { return _removed_frame_poses; }
 
     std::shared_ptr<isae::Frame> getLastFrame() {
         if (_frames.empty())
@@ -34,12 +33,25 @@ class AMap {
     typed_vec_landmarks &getLandmarks() { return _landmarks; }
     size_t getMapSize() { return _frames.size(); }
 
-  protected:
-    virtual void pushLandmarks(std::shared_ptr<isae::Frame> &frame) = 0;
+    void pushLandmarks(std::shared_ptr<isae::Frame> &frame) {
+        typed_vec_landmarks all_ldmks = frame->getLandmarks();
 
-    std::deque<std::shared_ptr<Frame>> _frames;        // actual sliding window
-    std::vector<Eigen::Affine3d> _removed_frame_poses; // old frames
-    typed_vec_landmarks _landmarks;                    // all landmarks in the local map
+        // For all type of landmarks to add
+        for (auto &typed_ldmks : all_ldmks) {
+            for (auto &ldmk : typed_ldmks.second) {
+                if (!(!ldmk->isInitialized() || ldmk->isInMap() || ldmk->getFeatures().empty())) {
+                    {
+                        ldmk->setInMap();
+                        _landmarks[ldmk->getLandmarkLabel()].push_back(ldmk);
+                    }
+                }
+            }
+        }
+    }
+
+  protected:
+    std::deque<std::shared_ptr<Frame>> _frames; // frames in the map
+    typed_vec_landmarks _landmarks;             // all landmarks in the map
 };
 
 } // namespace isae

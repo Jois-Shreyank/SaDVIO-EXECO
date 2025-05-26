@@ -369,7 +369,7 @@ class RosVisualizer : public rclcpp::Node {
         _pub_vo_pose->publish(Twc_msg);
     }
 
-    void publishMap(const std::shared_ptr<isae::AMap> map) {
+    void publishLocalMap(const std::shared_ptr<isae::LocalMap> map) {
 
         _vo_traj_msg.header.stamp    = rclcpp::Node::now();
         _vo_traj_msg.header.frame_id = "world";
@@ -396,7 +396,7 @@ class RosVisualizer : public rclcpp::Node {
         _pub_vo_traj->publish(_vo_traj_msg);
     }
 
-    void publishLocalMapCloud(const std::shared_ptr<isae::AMap> map, const bool no_fov_mode = false) {
+    void publishLocalMapCloud(const std::shared_ptr<isae::LocalMap> map, const bool no_fov_mode = false) {
         isae::typed_vec_landmarks ldmks = map->getLandmarks();
 
         _points_local.header.frame_id    = "world";
@@ -462,7 +462,7 @@ class RosVisualizer : public rclcpp::Node {
         _pub_local_map_lines->publish(_lines_local);
     }
 
-    void publishGlobalMapCloud(const std::shared_ptr<isae::AMap> map) {
+    void publishGlobalMapCloud(const std::shared_ptr<isae::GlobalMap> map) {
         isae::typed_vec_landmarks ldmks = map->getLandmarks();
 
         _points_global.header.frame_id    = "world";
@@ -577,7 +577,7 @@ class RosVisualizer : public rclcpp::Node {
             }
 
             if (SLAM->_local_map_to_display) {
-                publishMap(SLAM->_local_map_to_display);
+                publishLocalMap(SLAM->_local_map_to_display);
                 publishLocalMapCloud(SLAM->_local_map_to_display);
                 SLAM->_local_map_to_display.reset();
             }

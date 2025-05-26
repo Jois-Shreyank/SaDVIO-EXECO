@@ -10,9 +10,6 @@ class GlobalMap : public AMap {
     GlobalMap() = default;
     void addFrame(std::shared_ptr<Frame> &frame) override;
 
-  protected:
-    void pushLandmarks(std::shared_ptr<Frame> &frame) override;
-
 };
 
 } // namespace isae
