@@ -15,7 +15,6 @@
 #include "isaeslam/featuredetectors/opencv_detectors/cvGFTTFeatureDetector.h"
 #include "isaeslam/featuredetectors/opencv_detectors/cvKAZEFeatureDetector.h"
 #include "isaeslam/featuredetectors/opencv_detectors/cvORBFeatureDetector.h"
-#include "isaeslam/featuredetectors/opencv_detectors/cvSTFeatureDetector.h"
 #include "isaeslam/featurematchers/Point2DFeatureMatcher.h"
 #include "isaeslam/featurematchers/Point2DFeatureTracker.h"
 
