@@ -180,8 +180,10 @@ bool SLAMMonoVIO::init() {
     detectFeatures(_frame->getSensors().at(0));
 
     // Perform Local BA on 10 KF before optimizing inertial variables
-    while (_local_map->getFrames().size() < 10)
-        step_init();
+    while (_local_map->getFrames().size() < 10) {
+        if (!step_init())
+            return false;
+    }
 
     // Launch optimization of the inertial variables
     Eigen::Matrix3d dRi;
@@ -499,8 +501,7 @@ bool SLAMMonoVIO::frontEndStep() {
         // Can be improved: redetect new points, retrack old features....
 
         _successive_fails++;
-        T_f_w = dT.inverse() * getLastKF()->getWorld2FrameTransform();
-        _frame->setWorld2FrameTransform(T_f_w);
+        _frame->setWorld2FrameTransform(_last_IMU->_T_w_f_imu.inverse());
         outlierRemoval();
         detectFeatures(_frame->getSensors().at(0));
         _frame->setKeyFrame();
