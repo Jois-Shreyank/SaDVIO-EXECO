@@ -1,5 +1,5 @@
 # SET(CMAKE_CONFIGURATION_TYPES Debug;Release;MinSizeRel;RelWithDebInfo)
-SET(CMAKE_BUILD_TYPE RELEASE) # DEBUG / RELEASE
+SET(CMAKE_BUILD_TYPE DEBUG) # DEBUG / RELEASE
 
 # set(CMAKE_BUILD_TYPE "DEBUG")
 project(isae_slam)
@@ -45,7 +45,7 @@ file(GLOB_RECURSE LIB_SOURCES src/*.cpp include/*.cpp
 file(GLOB_RECURSE LIB_HEADERS include/*.h include/*.hpp include/*.inl
   thirdparty/ELSED/src/*.h)
 add_library(${PROJECT_NAME} SHARED ${LIB_SOURCES} ${LIB_HEADERS})
-target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} ${CERES_LIBRARIES} ${YAML_CPP_LIBRARIES} ${PCL_LIBRARIES} ${Boost_SYSTEM_LIBRARY})
+target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} ${CERES_LIBRARIES} ${YAML_CPP_LIBRARIES} ${Boost_SYSTEM_LIBRARY})
 
 # -------------------------------------------------------------------
 # Install

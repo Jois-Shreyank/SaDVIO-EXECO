@@ -5,7 +5,6 @@ find_dependency(OpenCV)
 find_dependency(Eigen3)
 find_dependency(yaml-cpp)
 find_dependency(Ceres)
-find_dependency(PCL)
 find_dependency(Boost)
 
 include_directories(
@@ -14,7 +13,6 @@ include_directories(
   ${EIGEN3_INCLUDE_DIR}
   ${CERES_INCLUDE_DIRS}
   ${YAML_CPP_INCLUDE_DIR}
-  ${PCL_INCLUDE_DIRS}
 )
 
 set(ISAE_SLAM_LIBRARIES @ISAE_SLAM_LIBRARIES@)
