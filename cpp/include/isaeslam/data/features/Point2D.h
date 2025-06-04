@@ -5,6 +5,11 @@
 
 namespace isae {
 
+/*! 
+* @brief A single 2D point feature class.
+*
+* Point2D class represents a single 2D point feature in the image, labeled as "pointxd".
+*/
 class Point2D : public AFeature {
   public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW

@@ -10,10 +10,14 @@ namespace isae {
 class ImageSensor;
 class ALandmark;
 
+/*!
+ * @brief Abstract class for 2D features.
+ *
+ * Its main member is a vector of 2D points representing the feature in the image.
+ * It can be used to represent points, lines, bounding boxes, etc.
+ */
 class AFeature : public std::enable_shared_from_this<AFeature> {
   public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
     AFeature() {}
     AFeature(std::vector<Eigen::Vector2d> poses2d, cv::Mat desc = cv::Mat(), int octave = 0, double sigma = 1.0)
         : _poses2d(poses2d), _descriptor(desc), _octave(octave), _sigma(sigma) {}
@@ -22,6 +26,7 @@ class AFeature : public std::enable_shared_from_this<AFeature> {
         std::lock_guard<std::mutex> lock(_feat_mtx);
         return _poses2d;
     }
+
     void setPoints(std::vector<Eigen::Vector2d> poses2d) {
         std::lock_guard<std::mutex> lock(_feat_mtx);
         _poses2d = poses2d;
@@ -31,6 +36,7 @@ class AFeature : public std::enable_shared_from_this<AFeature> {
         std::lock_guard<std::mutex> lock(_feat_mtx);
         return _descriptor;
     }
+
     void setDescriptor(cv::Mat descriptor) {
         std::lock_guard<std::mutex> lock(_feat_mtx);
         _descriptor = descriptor;
@@ -82,33 +88,44 @@ class AFeature : public std::enable_shared_from_this<AFeature> {
         return _sensor.lock();
     }
 
+    /**
+     * @brief Compute the bearing vectors from the 2D points, usually inverting the camera projection model
+     */
     void computeBearingVectors();
+
     std::vector<Eigen::Vector3d> getBearingVectors() {
         std::lock_guard<std::mutex> lock(_feat_mtx);
         return _bearing_vectors;
     }
     std::vector<Eigen::Vector3d> getRays();
 
+    /**
+     * @brief Set the 2D feature as an outlier
+     */
     void setOutlier() {
         std::lock_guard<std::mutex> lock(_feat_mtx);
         _outlier = true;
     }
+
+    /**
+     *  @brief True if the feature is an outlier
+     */
     bool isOutlier() {
         std::lock_guard<std::mutex> lock(_feat_mtx);
         return _outlier;
     }
 
   protected:
-    std::string _feature_label;
-    std::vector<Eigen::Vector2d> _poses2d;
-    std::vector<Eigen::Vector3d> _bearing_vectors;
-    cv::Mat _descriptor;
-    int _octave;
-    float _response;
-    double _sigma;
-    std::weak_ptr<ImageSensor> _sensor; //< link to parent sensor
-    std::weak_ptr<ALandmark> _landmark; //< link to landmark
-    bool _outlier = false;
+    std::string _feature_label;                    //!< Feature label, e.g. point, line, bouding box, etc.
+    std::vector<Eigen::Vector2d> _poses2d;         //!< 2D coordinates of the points of the feature in the image
+    std::vector<Eigen::Vector3d> _bearing_vectors; //!< Bearing vectors corresponding to the 2D points
+    cv::Mat _descriptor;                           //!< Descriptor of the feature, e.g. SIFT, ORB, etc.
+    int _octave;                                   //!< Octave of the feature, used in multi-scale feature detection
+    float _response;                               //!< Response of the feature, i.e. strength of the feature
+    double _sigma;                                 //!< Noise level of the feature
+    std::weak_ptr<ImageSensor> _sensor;            //!< Link to the parent sensor
+    std::weak_ptr<ALandmark> _landmark;            //!< Link to the landmark associated with the feature
+    bool _outlier = false;                         //!< Flag to indicate if the feature is an outlier
 
     mutable std::mutex _feat_mtx;
 };
