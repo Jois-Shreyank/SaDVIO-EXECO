@@ -108,6 +108,10 @@ bool PnPPoseEstimator::estimateTransformBetween(const std::shared_ptr<Frame> &fr
     cv::Mat Sigma = cv::Mat(J.t() * J, cv::Rect(0,0,6,6)).inv();
     cv::cv2eigen(Sigma, covdT);
 
+    // If the covariance is not valid, return false
+    if (covdT.trace() > 1e3)
+        return false;
+
     // Store the resulting pose of F2-Cam1 in F1-Cam1 frame
     cv::Mat Rcv;
     cv::Rodrigues(rvec, Rcv);

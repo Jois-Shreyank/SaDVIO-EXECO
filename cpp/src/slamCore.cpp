@@ -441,11 +441,24 @@ bool SLAMCore::predict(std::shared_ptr<Frame> &f) {
     // False if the prediction failed and constant velocity applies
     if (!_slam_param->getPoseEstimator()->estimateTransformBetween(
             getLastKF(), f, _matches_in_time_lmk["pointxd"], T_last_curr, covdT)) {
-        std::cerr << "Predict fails" << std::endl;
+        std::cerr << "Predict fails, PnP failed" << std::endl;
 
-        f->setWorld2FrameTransform(T_last_curr.inverse() * getLastKF()->getWorld2FrameTransform());
+        f->setWorld2FrameTransform(T_const.inverse() * getLastKF()->getWorld2FrameTransform());
         return false;
     } else {
+
+        // Check if the pose is valid 
+        if (T_const.translation().norm() > 0.1) {
+            double delta_norm = (geometry::se3_RTtoVec6d(T_last_curr) - geometry::se3_RTtoVec6d(T_const)).norm() / 
+                                geometry::se3_RTtoVec6d(T_const).norm();
+            if (delta_norm > 10) {
+                std::cerr << "Predict fails, PnP pose is not valid" << std::endl;
+                std::cout << "T_last_curr: " << T_last_curr.translation().transpose() << std::endl;
+                std::cout << "T_const: " << T_const.translation().transpose() << std::endl;
+                f->setWorld2FrameTransform(T_const.inverse() * getLastKF()->getWorld2FrameTransform());
+                return false;
+            }
+        }
 
         // Update the pose only for pnp
         if (_slam_param->_config.pose_estimator != "pnp")
@@ -500,7 +513,7 @@ void SLAMCore::profiling() {
 
         // Write in a txt file for evaluation
         if (getLastKF()) {
-            std::shared_ptr<Frame> f = getLastKF();
+            std::shared_ptr<Frame> f = _local_map->getFrames().front();
             std::ofstream fw_res("log_slam/results.csv", std::ofstream::out | std::ofstream::app);
             Eigen::Affine3d T_w_f   = f->getFrame2WorldTransform();
             const Eigen::Matrix3d R = T_w_f.linear();

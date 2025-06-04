@@ -106,6 +106,13 @@ bool EpipolarPoseEstimator::estimateTransformBetween(const std::shared_ptr<Frame
         }
     }
 
+    matches = inliermatches;
+
+    if (E.empty() || E.cols != 3 || E.rows != 3) {
+        std::cerr << "Essential matrix is empty or not valid" << std::endl;
+        return false;
+    }
+
     cv::Mat Rcv, tcv;
     cv::recoverPose(E, p_prev, p_curr, K, Rcv, tcv, inliers);
 

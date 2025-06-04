@@ -431,8 +431,6 @@ bool SLAMBiMonoVIO::frontEndStep() {
         // - All matches in time are removed
         // Can be improved: redetect new points, retrack old features....
         _successive_fails++;
-
-        T_f_w = dT.inverse() * getLastKF()->getWorld2FrameTransform();
         _frame->setWorld2FrameTransform(T_f_w);
         outlierRemoval();
         _frame->setKeyFrame();
@@ -463,17 +461,6 @@ bool SLAMBiMonoVIO::frontEndStep() {
             Eigen::Affine3d T_f_w = _frame->getWorld2FrameTransform();
             _frame->getIMU()->processIMU();
             _frame->setWorld2FrameTransform(T_f_w);
-        }
-
-        // To set pose when prediction fails
-        if (!good_it) {
-            _frame->getIMU()->estimateTransform(_last_IMU->getLastKF(), _frame, dT);
-            T_f_w = dT.inverse() * getLastKF()->getWorld2FrameTransform();
-            _frame->setWorld2FrameTransform(T_f_w);
-            std::cout << "IMU dT : \n" << dT.matrix() << std::endl;
-            std::cout << "pnp dT : \n"
-                      << (getLastKF()->getWorld2FrameTransform() * _frame->getFrame2WorldTransform()).matrix()
-                      << "\n ---" << std::endl;
         }
 
         // Repopulate in the case of klt tracking
@@ -543,6 +530,10 @@ bool SLAMBiMonoVIO::frontEndStep() {
     // Init the SLAM again in case of successive failures or if the frame is too far from the last KF
     if ((getLastKF()->getWorld2FrameTransform() * _frame->getFrame2WorldTransform()).translation().norm() > 10 ||
         (_successive_fails > 5)) {
+        std::cout << "Reinitializing SLAM after " << _successive_fails << " successive fails or too far from last KF"
+                  << std::endl;
+        std::cout << "IMU dT : \n" << dT.matrix() << std::endl;
+        std::cout << "pnp dT : \n" << (getLastKF()->getWorld2FrameTransform() * _frame->getFrame2WorldTransform()).matrix() << "\n ---" << std::endl;
 
         _is_init = false;
         _local_map->reset();
