@@ -60,7 +60,7 @@ class AMap {
                 if (!(!ldmk->isInitialized() || ldmk->isInMap() || ldmk->getFeatures().empty())) {
                     {
                         ldmk->setInMap();
-                        _landmarks[ldmk->getLandmarkLabel()].push_back(ldmk);
+                        _landmarks[ldmk->_label].push_back(ldmk);
                     }
                 }
             }

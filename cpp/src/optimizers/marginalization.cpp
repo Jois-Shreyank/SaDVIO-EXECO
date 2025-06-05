@@ -258,7 +258,7 @@ bool Marginalization::computeSchurComplement() {
 double Marginalization::computeEntropy(std::shared_ptr<ALandmark> lmk) {
 
     int size;
-    lmk->getLandmarkLabel() == "pointxd" ? size = 3 : size = 6;
+    lmk->_label == "pointxd" ? size = 3 : size = 6;
 
     Eigen::MatrixXd Sigma = _Sigma_k.block(_map_lmk_idx.at(lmk), _map_lmk_idx.at(lmk), size, size);
     return std::log(std::pow(2 * M_PI * M_E, size / 2) * Sigma.determinant());
@@ -268,10 +268,10 @@ double Marginalization::computeMutualInformation(std::shared_ptr<ALandmark> lmk_
 
     // Retrieve the size of the landmarks
     int size_i;
-    lmk_i->getLandmarkLabel() == "pointxd" ? size_i = 3 : size_i = 6;
+    lmk_i->_label == "pointxd" ? size_i = 3 : size_i = 6;
 
     int size_j;
-    lmk_j->getLandmarkLabel() == "pointxd" ? size_j = 3 : size_j = 6;
+    lmk_j->_label == "pointxd" ? size_j = 3 : size_j = 6;
 
     // Extract submatrices for MI calculation
     Eigen::MatrixXd Sigma_ii = _Sigma_k.block(_map_lmk_idx.at(lmk_i), _map_lmk_idx.at(lmk_i), size_i, size_i);
@@ -296,10 +296,10 @@ double Marginalization::computeOffDiag(std::shared_ptr<ALandmark> lmk_i, std::sh
 
     // Retrieve the size of the landmarks
     int size_i;
-    lmk_i->getLandmarkLabel() == "pointxd" ? size_i = 3 : size_i = 6;
+    lmk_i->_label == "pointxd" ? size_i = 3 : size_i = 6;
 
     int size_j;
-    lmk_j->getLandmarkLabel() == "pointxd" ? size_j = 3 : size_j = 6;
+    lmk_j->_label == "pointxd" ? size_j = 3 : size_j = 6;
 
     return std::abs(_Ak.block(_map_lmk_idx.at(lmk_i), _map_lmk_idx.at(lmk_j), size_i, size_j).trace());
 }

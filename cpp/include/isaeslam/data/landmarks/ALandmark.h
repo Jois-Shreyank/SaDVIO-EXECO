@@ -8,35 +8,53 @@ namespace isae {
 
 class AFeature;
 
+/*!
+ * @brief Abstract class for 3D Landmarks.
+ *
+ * It contains a 6DoF pose and a 3D model for a general formulation.
+ * It also contains a set of features that are associated to the landmark.
+ */
 class ALandmark : public std::enable_shared_from_this<ALandmark> {
   public:
     ALandmark() {}
     ALandmark(Eigen::Affine3d T_w_l, std::vector<std::shared_ptr<isae::AFeature>> features);
     ~ALandmark() {}
 
-    // Landmark id for bookeeping
-    static int _landmark_count;
-    int _id;
-
+    /*!
+     * @brief Virtual Function to properly initialize a landmark.
+     */
     virtual void init(Eigen::Affine3d T_w_l, std::vector<std::shared_ptr<isae::AFeature>> features);
-
-    std::string getLandmarkLabel() const { return _label; }
 
     void addFeature(std::shared_ptr<AFeature> feature);
     std::vector<std::weak_ptr<AFeature>> getFeatures() { return _features; }
 
+    /*!
+     * @brief Remove features that are not linked to anything.
+     */
     void removeExpiredFeatures();
+
     void removeFeature(std::shared_ptr<AFeature> f);
+
+    /*!
+     * @brief Fuse this landmark with another one, the feature sets are merged.
+     *
+     * If there is a wrong behavior in the association, it returns false
+     */
     bool fuseWithLandmark(std::shared_ptr<ALandmark> landmark);
 
     void setPose(Eigen::Affine3d T_w_l) {
         std::lock_guard<std::mutex> lock(_lmk_mtx);
         _T_w_l = T_w_l;
     }
+
+    /*!
+     * @brief Set only the translation of the landmark pose.
+     */
     void setPosition(Eigen::Vector3d t_w_l) {
         std::lock_guard<std::mutex> lock(_lmk_mtx);
         _T_w_l.translation() = t_w_l;
     }
+
     Eigen::Affine3d getPose() const {
         std::lock_guard<std::mutex> lock(_lmk_mtx);
         return _T_w_l;
@@ -44,9 +62,6 @@ class ALandmark : public std::enable_shared_from_this<ALandmark> {
 
     std::vector<Eigen::Vector3d> getModelPoints() { return _model->getModel(); }
     std::shared_ptr<AModel3d> getModel() const { return _model; }
-
-    void setScale(Eigen::Vector3d scale) { _scale = scale; }
-    Eigen::Vector3d getScale() const { return _scale; }
 
     cv::Mat getDescriptor() const {
         std::lock_guard<std::mutex> lock(_lmk_mtx);
@@ -75,8 +90,19 @@ class ALandmark : public std::enable_shared_from_this<ALandmark> {
         return _in_map;
     }
 
+    /*!
+     * @brief Check if the landmark is valid in terms of reprojection error and number of features.
+     */
     bool sanityCheck();
+
+    /*!
+     * @brief Compute the chi2 error for a given feature.
+     */
     virtual double chi2err(std::shared_ptr<AFeature> f);
+
+    /*!
+     * @brief Compute the average chi2 error for all features associated to the landmark.
+     */
     double avgChi2err();
 
     bool isOutlier() const {
@@ -119,22 +145,23 @@ class ALandmark : public std::enable_shared_from_this<ALandmark> {
         _is_marg = true;
     }
 
+    static int _landmark_count; //!> Static counter for landmarks, used for unique id generation
+    int _id;                    //!> Unique id for the landmark, used for bookeeping
+    std::string _label;         //!> Label for the landmark
+
   protected:
-    bool _initialized   = false;
-    bool _in_map        = false;
-    bool _outlier       = false;
-    bool _is_resurected = false;
-    bool _has_prior     = false;
-    bool _is_marg       = false;
+    bool _initialized   = false; //!> Flag to check if the landmark is initialized
+    bool _in_map        = false; //!> Flag to check if the landmark is in the map
+    bool _outlier       = false; //!> Flag to check if the landmark is an outlier
+    bool _is_resurected = false; //!> Flag to check if the landmark has been resurected
+    bool _has_prior     = false; //!> Flag to check if the landmark has a prior
+    bool _is_marg       = false; //!> Flag to check if the landmark is marginalised
 
-    std::string _label;
-    Eigen::Affine3d _T_w_l;
-    cv::Mat _descriptor;
+    Eigen::Affine3d _T_w_l;           //!> Landmark pose in world frame
+    cv::Mat _descriptor;              //!> Descriptor of the landmark, used for matching
+    std::shared_ptr<AModel3d> _model; //!> 3D model of the landmark
 
-    Eigen::Vector3d _scale = Eigen::Vector3d(1, 1, 1);
-    std::shared_ptr<AModel3d> _model;
-
-    std::vector<std::weak_ptr<AFeature>> _features;
+    std::vector<std::weak_ptr<AFeature>> _features; //!> Features associated to the landmark
 
     mutable std::mutex _lmk_mtx;
 };

@@ -26,12 +26,11 @@ Eigen::Vector3d Camera::getRayCamera(Eigen::Vector2d f) {
 
 bool Camera::project(const Eigen::Affine3d &T_w_lmk,
                      const std::shared_ptr<AModel3d> ldmk_model,
-                     const Eigen::Vector3d &scale,
                      std::vector<Eigen::Vector2d> &p2d_vector) {
 
     for (const auto &p3d_model : ldmk_model->getModel()) {
         // conversion to the camera coordinate system
-        Eigen::Vector3d t_w_lmk   = T_w_lmk * p3d_model.cwiseProduct(scale);
+        Eigen::Vector3d t_w_lmk   = T_w_lmk * p3d_model.cwiseProduct(Eigen::Vector3d::Ones());
         Eigen::Vector3d t_cam_lmk = this->getWorld2SensorTransform() * t_w_lmk;
 
         // to image homogeneous coordinates
@@ -54,13 +53,12 @@ bool Camera::project(const Eigen::Affine3d &T_w_lmk,
 
 bool Camera::project(const Eigen::Affine3d &T_w_lmk,
                      const std::shared_ptr<AModel3d> ldmk_model,
-                     const Eigen::Vector3d &scale,
                      const Eigen::Affine3d &T_f_w,
                      std::vector<Eigen::Vector2d> &p2d_vector) {
 
     for (auto &p3d_model : ldmk_model->getModel()) {
         // conversion to the camera coordinate system
-        Eigen::Vector3d t_w_lmk   = T_w_lmk * p3d_model.cwiseProduct(scale);
+        Eigen::Vector3d t_w_lmk   = T_w_lmk * p3d_model.cwiseProduct(Eigen::Vector3d::Ones());
         Eigen::Vector3d t_cam_lmk = this->getFrame2SensorTransform() * T_f_w * t_w_lmk;
 
         if (t_cam_lmk[2] < 0.1) // point behind the camera

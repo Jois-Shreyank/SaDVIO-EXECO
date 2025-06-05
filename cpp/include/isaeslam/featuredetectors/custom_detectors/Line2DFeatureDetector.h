@@ -65,4 +65,4 @@ class Line2DFeatureDetector : public ACustomFeatureDetector {
 
 } // namespace isae
 
-#endif // EDGELETFEATUREDETECTOR_H
+#endif // LINE2DFEATUREDETECTOR_H

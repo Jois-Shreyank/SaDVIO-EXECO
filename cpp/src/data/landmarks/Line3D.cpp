@@ -9,7 +9,7 @@ double Line3D::chi2err(std::shared_ptr<AFeature> f) {
     double feat_chi2_error    = 0.0;
     Eigen::Matrix2d sqrt_info = (1 / f->getSigma()) * Eigen::Matrix2d::Identity();
 
-    if (!f->getSensor()->project(this->getPose(), this->getModel(), this->getScale(), projections))
+    if (!f->getSensor()->project(this->getPose(), this->getModel(), projections))
         return 1000;
 
 

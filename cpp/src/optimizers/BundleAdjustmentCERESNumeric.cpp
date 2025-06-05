@@ -83,8 +83,7 @@ uint BundleAdjustmentCERESNumeric::addSingleFrameResiduals(ceres::Problem &probl
                             ReprojectionErrCeres_linexd::Create(feature->getPoints(), 
                                                                 cam, 
                                                                 landmark->getPose(), 
-                                                                landmark->getModel(), 
-                                                                landmark->getScale(), 
+                                                                landmark->getModel(),
                                                                 1);
 
                         problem.AddResidualBlock(cost_fct, 
@@ -187,8 +186,7 @@ uint BundleAdjustmentCERESNumeric::addLandmarkResiduals(ceres::Problem &problem,
                         ReprojectionErrCeres_linexd::Create(feature->getPoints(),
                                                             cam,
                                                             frame->getWorld2FrameTransform(),
-                                                            landmark->getModel(),
-                                                            landmark->getScale());
+                                                            landmark->getModel());
 
                     problem.AddResidualBlock(cost_fct, 
                                             loss_function,
@@ -302,8 +300,7 @@ uint BundleAdjustmentCERESNumeric::addResidualsLocalMap(ceres::Problem &problem,
                     ReprojectionErrCeres_linexd::Create(feature->getPoints(),
                                                         cam,
                                                         frame->getWorld2FrameTransform(),
-                                                        landmark->getModel(),
-                                                        landmark->getScale());                    
+                                                        landmark->getModel());                    
 
                     problem.AddResidualBlock(cost_fct,
                                             loss_function,

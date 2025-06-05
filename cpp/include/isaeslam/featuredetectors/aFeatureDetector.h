@@ -4,7 +4,6 @@
 #include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
 
-#include "isaeslam/data/features/Edgelet2D.h"
 #include "isaeslam/data/features/Line2D.h"
 #include "isaeslam/data/features/Point2D.h"
 #include "isaeslam/data/sensors/ASensor.h"

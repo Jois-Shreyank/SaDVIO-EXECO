@@ -201,16 +201,13 @@ TEST_F(LineFeatureTest, LineFeatureTriangulation) {
     Eigen::Matrix3d R = T.rotation();
     Eigen::Vector3d v = isae::geometry::Rotation2directionVector(R, Eigen::Vector3d(1, 0, 0));
     std::vector<Eigen::Vector3d> ldmk_model = ldmks["linexd"].at(0)->getModelPoints();
-    Eigen::Vector3d scale = ldmks["linexd"].at(0)->getScale();
 
     std::vector<Eigen::Vector3d> start_end;
     for (const auto &p3d_model : ldmk_model) {
     // conversion to the world coordinate system
-        Eigen::Vector3d t_w_lmk = T * p3d_model.cwiseProduct(scale);
+        Eigen::Vector3d t_w_lmk = T * p3d_model.cwiseProduct(Eigen::Vector3d::Ones());
         start_end.push_back(t_w_lmk);
     }
-
-
 
     std::cout << "Results triangulation : " << std::endl
               << "center = " << t <<  std::endl

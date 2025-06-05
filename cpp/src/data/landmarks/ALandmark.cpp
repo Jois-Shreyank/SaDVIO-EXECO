@@ -101,7 +101,7 @@ double ALandmark::chi2err(std::shared_ptr<AFeature> f) {
     double feat_chi2_error    = 0.0;
     Eigen::Matrix2d sqrt_info = (1 / f->getSigma()) * Eigen::Matrix2d::Identity();
 
-    if (!f->getSensor()->project(_T_w_l, _model, _scale, p2ds))
+    if (!f->getSensor()->project(_T_w_l, _model, p2ds))
         return 1000;
 
     for (uint i = 0; i < f->getPoints().size(); ++i) {

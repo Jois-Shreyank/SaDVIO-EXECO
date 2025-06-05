@@ -6,6 +6,12 @@
 
 namespace isae {
 
+/*!
+ * @brief A 3D Point landmark class.
+ * 
+ * Point3D class represents a 3D point in space, labeled as "pointxd".
+ * This is the most common type of landmark used in SLAM systems.
+ */
 class Point3D : public ALandmark {
   public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW

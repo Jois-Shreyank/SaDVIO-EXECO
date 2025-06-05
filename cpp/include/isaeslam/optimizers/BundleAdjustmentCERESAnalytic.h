@@ -107,9 +107,8 @@ class BundleAdjustmentCERESAnalytic : public AOptimizer {
                                      const std::shared_ptr<ImageSensor> &cam,
                                      const Eigen::Affine3d &T_w_lmk,
                                      const std::shared_ptr<AModel3d> &model3d,
-                                     const Eigen::Vector3d &scale,
                                      const double sigma = 1.0)
-            : p2ds_(p2ds), cam_(cam), T_w_lmk_(T_w_lmk), model3d_(model3d), scale_(scale) {
+            : p2ds_(p2ds), cam_(cam), T_w_lmk_(T_w_lmk), model3d_(model3d) {
             info_sqrt_ = (1 / sigma) * Eigen::Matrix2d::Identity();
         }
         ~ReprojectionErrCeres_linexd_dx() {}
@@ -190,7 +189,6 @@ class BundleAdjustmentCERESAnalytic : public AOptimizer {
         const std::shared_ptr<ImageSensor> cam_;
         const Eigen::Affine3d T_w_lmk_;
         const std::shared_ptr<AModel3d> model3d_;
-        const Eigen::Vector3d scale_;
         Eigen::Matrix2d info_sqrt_;
     };
 

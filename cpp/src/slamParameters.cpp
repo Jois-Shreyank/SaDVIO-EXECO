@@ -1,12 +1,9 @@
 #include "isaeslam/slamParameters.h"
 
 #include "isaeslam/data/landmarks/BBox3d.h"
-#include "isaeslam/data/landmarks/Edgelet3D.h"
 #include "isaeslam/data/landmarks/Line3D.h"
 #include "isaeslam/data/landmarks/Point3D.h"
 
-#include "isaeslam/featuredetectors/custom_detectors/Edgelet2DFeatureDetector.h"
-#include "isaeslam/featuredetectors/custom_detectors/EllipsePatternFeatureDetector.h"
 #include "isaeslam/featuredetectors/custom_detectors/Line2DFeatureDetector.h"
 #include "isaeslam/featuredetectors/custom_detectors/csvKeypointDetector.h"
 #include "isaeslam/featuredetectors/custom_detectors/semanticBBoxFeatureDetector.h"
@@ -15,19 +12,14 @@
 #include "isaeslam/featuredetectors/opencv_detectors/cvGFTTFeatureDetector.h"
 #include "isaeslam/featuredetectors/opencv_detectors/cvKAZEFeatureDetector.h"
 #include "isaeslam/featuredetectors/opencv_detectors/cvORBFeatureDetector.h"
+
 #include "isaeslam/featurematchers/Point2DFeatureMatcher.h"
 #include "isaeslam/featurematchers/Point2DFeatureTracker.h"
-
-#include "isaeslam/featurematchers/EdgeletFeatureMatcher.h"
-#include "isaeslam/featurematchers/EdgeletFeatureTracker.h"
-#include "isaeslam/featurematchers/EllipsePatternFeatureMatcher.h"
-#include "isaeslam/featurematchers/EllipsePatternFeatureTracker.h"
 #include "isaeslam/featurematchers/Line2DFeatureMatcher.h"
 #include "isaeslam/featurematchers/Line2DFeatureTracker.h"
 #include "isaeslam/featurematchers/semanticBBoxFeatureMatcher.h"
 #include "isaeslam/featurematchers/semanticBBoxFeatureTracker.h"
 
-#include "isaeslam/landmarkinitializer/Edgelet3DlandmarkInitializer.h"
 #include "isaeslam/landmarkinitializer/Line3DlandmarkInitializer.h"
 #include "isaeslam/landmarkinitializer/Point3DlandmarkInitializer.h"
 #include "isaeslam/landmarkinitializer/semanticBBoxlandmarkInitializer.h"
@@ -93,22 +85,11 @@ void isae::SLAMParameters::createDetectors() {
             isae::CsvKeypointDetector SIFT_detector = isae::CsvKeypointDetector(
                 config_line.number_detected_features, config_line.n_features_per_cell, config_line.max_matching_dist);
             _detector_map[config_line.label_feature] = std::make_shared<isae::CsvKeypointDetector>(SIFT_detector);
-        } else if (config_line.detector_label == "Edgelet2DFeatureDetector") {
-            std::cout << "+ Adding Edgelet2DFeatureDetector" << std::endl;
-            isae::EdgeletFeatureDetector edgelet_detector = isae::EdgeletFeatureDetector(
-                config_line.number_detected_features, config_line.n_features_per_cell, config_line.max_matching_dist);
-            _detector_map[config_line.label_feature] = std::make_shared<isae::EdgeletFeatureDetector>(edgelet_detector);
         } else if (config_line.detector_label == "Line2DFeatureDetector") {
             std::cout << "+ Adding Line2DFeatureDetector" << std::endl;
             isae::Line2DFeatureDetector lineDetector = isae::Line2DFeatureDetector(
                 config_line.number_detected_features, config_line.n_features_per_cell, config_line.max_matching_dist);
             _detector_map[config_line.label_feature] = std::make_shared<isae::Line2DFeatureDetector>(lineDetector);
-        } else if (config_line.detector_label == "EllipsePatternDetector") {
-            std::cout << "+ Adding EllipsePatternDetector" << std::endl;
-            isae::EllipsePatternFeatureDetector ellipsePatternDetector = isae::EllipsePatternFeatureDetector(
-                config_line.number_detected_features, config_line.n_features_per_cell);
-            _detector_map[config_line.label_feature] =
-                std::make_shared<isae::EllipsePatternFeatureDetector>(ellipsePatternDetector);
         } else if (config_line.detector_label == "semanticBBoxFeatureDetector") {
             std::cout << "+ Adding semanticBBoxFeatureDetector" << std::endl;
             isae::semanticBBoxFeatureDetector bboxFeatureDetector = isae::semanticBBoxFeatureDetector(
@@ -135,22 +116,10 @@ void isae::SLAMParameters::createMatchers() {
             matcher.feature_matcher                 = std::make_shared<Point2DFeatureMatcher>(p2dMatcher);
             _matcher_map[config_line.label_feature] = matcher;
 
-        } else if (config_line.matcher_label == "EdgeletFeatureMatcher") {
-            std::cout << "+ Adding EdgeletFeatureMatcher" << std::endl;
-            isae::EdgeletFeatureMatcher edgeletMatcher(detector);
-            matcher.feature_matcher                 = std::make_shared<EdgeletFeatureMatcher>(edgeletMatcher);
-            _matcher_map[config_line.label_feature] = matcher;
-
         } else if (config_line.matcher_label == "Line2DFeatureMatcher") {
             std::cout << "+ Adding LineFeatureMatcher" << std::endl;
             isae::Line2DFeatureMatcher line2DMatcher(detector);
             matcher.feature_matcher                 = std::make_shared<Line2DFeatureMatcher>(line2DMatcher);
-            _matcher_map[config_line.label_feature] = matcher;
-
-        } else if (config_line.matcher_label == "EllipsePatternFeatureMatcher") {
-            std::cout << "+ Adding EllipsePatternFeatureMatcher" << std::endl;
-            isae::EllipsePatternFeatureMatcher ellipseMatcher(detector);
-            matcher.feature_matcher                 = std::make_shared<EllipsePatternFeatureMatcher>(ellipseMatcher);
             _matcher_map[config_line.label_feature] = matcher;
 
         } else if (config_line.matcher_label == "semanticBBoxFeatureMatcher") {
@@ -180,23 +149,11 @@ void isae::SLAMParameters::createTrackers() {
             isae::Point2DFeatureTracker p2dTracker(detector);
             tracker.feature_tracker                 = std::make_shared<Point2DFeatureTracker>(p2dTracker);
             _tracker_map[config_line.label_feature] = tracker;
-
-        } else if (config_line.tracker_label == "EdgeletFeatureTracker") {
-            std::cout << "+ Adding EdgeletFeatureTracker" << std::endl;
-            isae::EdgeletFeatureTracker edgeletTracker(detector);
-            tracker.feature_tracker                 = std::make_shared<EdgeletFeatureTracker>(edgeletTracker);
-            _tracker_map[config_line.label_feature] = tracker;
-
+            
         } else if (config_line.tracker_label == "Line2DFeatureTracker") {
             std::cout << "+ Adding LineFeatureTracker" << std::endl;
             isae::Line2DFeatureTracker line2DTracker(detector);
             tracker.feature_tracker                 = std::make_shared<Line2DFeatureTracker>(line2DTracker);
-            _tracker_map[config_line.label_feature] = tracker;
-
-        } else if (config_line.tracker_label == "EllipsePatternFeatureTracker") {
-            std::cout << "+ Adding EllipsePatternFeatureTracker" << std::endl;
-            isae::EllipsePatternFeatureTracker ellipseTracker(detector);
-            tracker.feature_tracker                 = std::make_shared<EllipsePatternFeatureTracker>(ellipseTracker);
             _tracker_map[config_line.label_feature] = tracker;
 
         } else if (config_line.tracker_label == "semanticBBoxFeatureTracker") {
@@ -216,11 +173,6 @@ void isae::SLAMParameters::createLandmarkInitializers() {
             std::cout << "+ Adding Point3DLandmarkInitializer" << std::endl;
             isae::Point3DLandmarkInitializer p3dInit(config_line.number_kept_features);
             _lmk_init_map[config_line.label_feature] = std::make_shared<Point3DLandmarkInitializer>(p3dInit);
-
-        } else if (config_line.lmk_triangulator == "Edgelet3DLandmarkInitializer") {
-            std::cout << "+ Adding Edgelet3DLandmarkInitializer" << std::endl;
-            isae::Edgelet3DLandmarkInitializer edgeletInit(config_line.number_kept_features);
-            _lmk_init_map[config_line.label_feature] = std::make_shared<Edgelet3DLandmarkInitializer>(edgeletInit);
 
         } else if (config_line.lmk_triangulator == "Line3DLandmarkInitializer") {
             std::cout << "+ Adding Line3DLandmarkInitializer " << std::endl;

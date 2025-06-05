@@ -83,7 +83,6 @@ uint BundleAdjustmentCERESAnalytic::addSingleFrameResiduals(ceres::Problem &prob
                                                                                            cam,
                                                                                            landmark->getPose(),
                                                                                            landmark->getModel(),
-                                                                                           landmark->getScale(),
                                                                                            1);
 
                         problem.AddResidualBlock(cost_fct,
@@ -181,7 +180,7 @@ uint BundleAdjustmentCERESAnalytic::addLandmarkResiduals(ceres::Problem &problem
                     }
 
                     ceres::CostFunction *cost_fct = new ReprojectionErrCeres_linexd_dx(
-                        feature->getPoints(), cam, landmark->getPose(), landmark->getModel(), landmark->getScale(), 1);
+                        feature->getPoints(), cam, landmark->getPose(), landmark->getModel(), 1);
                     problem.AddResidualBlock(cost_fct,
                                              loss_function,
                                              _map_frame_posepar.at(frame).values(),
@@ -300,7 +299,7 @@ uint BundleAdjustmentCERESAnalytic::addResidualsLocalMap(ceres::Problem &problem
                     nb_residuals++;
 
                     ceres::CostFunction *cost_fct = new ReprojectionErrCeres_linexd_dx(
-                        feature->getPoints(), cam, landmark->getPose(), landmark->getModel(), landmark->getScale(), 1);
+                        feature->getPoints(), cam, landmark->getPose(), landmark->getModel(), 1);
 
                     problem.AddResidualBlock(cost_fct,
                                              loss_function,

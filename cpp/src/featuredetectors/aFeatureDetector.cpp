@@ -59,9 +59,6 @@ void AFeatureDetector::KeypointToFeature(std::vector<cv::KeyPoint> keypoints,
             if (featurelabel == "pointxd")
                 features.push_back(std::make_shared<Point2D>(points, descriptors.row(i), keypoints.at(i).octave));
 
-            if (featurelabel == "edgeletxd")
-                features.push_back(std::make_shared<Edgelet2D>(points, descriptors.row(i)));
-
             if (featurelabel == "linexd")
                 features.push_back(std::make_shared<Line2D>(points, descriptors.row(i)));
         }

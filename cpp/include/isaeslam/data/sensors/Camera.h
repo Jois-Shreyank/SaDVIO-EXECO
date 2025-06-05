@@ -25,12 +25,10 @@ class Camera : public ImageSensor {
 
     bool project(const Eigen::Affine3d &T_w_lmk,
                  const std::shared_ptr<AModel3d> ldmk_model,
-                 const Eigen::Vector3d &scale,
                  std::vector<Eigen::Vector2d> &p2ds) override;
 
     bool project(const Eigen::Affine3d &T_w_lmk,
                  const std::shared_ptr<AModel3d> ldmk_model,
-                 const Eigen::Vector3d &scale,
                  const Eigen::Affine3d &T_f_w,
                  std::vector<Eigen::Vector2d> &p2ds) override;
 

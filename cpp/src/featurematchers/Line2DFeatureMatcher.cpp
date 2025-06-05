@@ -128,7 +128,7 @@ uint Line2DFeatureMatcher::ldmk_match(std::shared_ptr<ImageSensor> &sensor1,
             continue;
         }
 
-        std::string label = lmk->getLandmarkLabel();
+        std::string label = lmk->_label;
 
         // If it has prior continue
         if (lmk->hasPrior() || !lmk->isInitialized() || lmk->isOutlier())
@@ -141,7 +141,7 @@ uint Line2DFeatureMatcher::ldmk_match(std::shared_ptr<ImageSensor> &sensor1,
 
         // Project the landmark in the current sensor
         std::vector<Eigen::Vector2d> p2ds;
-        if (!sensor1->project(lmk->getPose(), lmk->getModel(), lmk->getScale(), p2ds))
+        if (!sensor1->project(lmk->getPose(), lmk->getModel(), p2ds))
             continue;
 
         // For all feature of this type, try to find one close to the reprojection

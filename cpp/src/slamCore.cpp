@@ -280,7 +280,7 @@ void SLAMCore::predictFeature(std::vector<std::shared_ptr<AFeature>> features,
 
             bool success;
             success = sensor->project(
-                T_w_lmk, feature->getLandmark().lock()->getModel(), Eigen::Vector3d::Ones(), predicted_p2ds);
+                T_w_lmk, feature->getLandmark().lock()->getModel(), predicted_p2ds);
 
             if (success && std::isfinite(predicted_p2ds.at(0).x()) && std::isfinite(predicted_p2ds.at(0).y())) {
                 features_init.push_back(std::make_shared<AFeature>(predicted_p2ds));

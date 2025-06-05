@@ -50,8 +50,7 @@ ACustomFeatureDetector::detectAndComputeGrid(const cv::Mat &img,
 
             for (auto f : features_local) {
                 std::vector<Eigen::Vector2d> pts;
-                if (/*(f->getFeatureLabel() == "edgeletxd")||*/
-                    (f->getFeatureLabel() == "pointxd")) {
+                if (f->getFeatureLabel() == "pointxd") {
                     pts = f->getPoints();
                     pts.at(0) += Eigen::Vector2d(x, y);
                 } else // multiple points features (pattern)

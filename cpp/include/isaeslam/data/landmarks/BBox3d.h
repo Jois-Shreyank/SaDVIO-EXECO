@@ -6,6 +6,11 @@
 
 namespace isae {
 
+/*!
+ * @brief A 3D bounding box landmark class.
+ * 
+ * BBox3D class represents a 3D boudning box in space, labeled as "bboxxd"..
+ */
 class BBox3D : public ALandmark {
   public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -22,13 +27,6 @@ class BBox3D : public ALandmark {
     BBox3D(Eigen::Affine3d T_w_l, std::vector<std::shared_ptr<isae::AFeature>> features) : ALandmark(T_w_l, features) {
         _label = "bboxxd";
         _model = std::make_shared<ModelBBox3D>();
-    }
-
-    BBox3D(Eigen::Affine3d T_w_l, Eigen::Vector3d scale, std::vector<std::shared_ptr<isae::AFeature>> features)
-        : ALandmark(T_w_l, features) {
-        _label = "bboxxd";
-        _model = std::make_shared<ModelBBox3D>();
-        _scale = scale;
     }
 };
 

@@ -55,8 +55,8 @@ class MeshTest : public testing::Test {
         std::vector<std::shared_ptr<AFeature>> feat_vec_0;
         _lmk_0 = std::shared_ptr<Point3D>(new Point3D(T_w_l0, feat_vec_0));
         std::vector<Eigen::Vector2d> projection_0_0_l, projection_0_0_r;
-        _sensor0l->project(_lmk_0->getPose(), _lmk_0->getModel(), Eigen::Vector3d(1, 1, 1), projection_0_0_l);
-        _sensor0r->project(_lmk_0->getPose(), _lmk_0->getModel(), Eigen::Vector3d(1, 1, 1), projection_0_0_r);
+        _sensor0l->project(_lmk_0->getPose(), _lmk_0->getModel(), projection_0_0_l);
+        _sensor0r->project(_lmk_0->getPose(), _lmk_0->getModel(), projection_0_0_r);
         _feat_0 = std::shared_ptr<Point2D>(new Point2D(projection_0_0_l));
         _lmk_0->addFeature(_feat_0);
         _sensor0l->addFeature("pointxd", _feat_0);
@@ -67,8 +67,8 @@ class MeshTest : public testing::Test {
         std::vector<std::shared_ptr<AFeature>> feat_vec_1;
         _lmk_1 = std::shared_ptr<Point3D>(new Point3D(T_w_l1, feat_vec_1));
         std::vector<Eigen::Vector2d> projection_0_1_l, projection_0_1_r;
-        _sensor0l->project(_lmk_1->getPose(), _lmk_1->getModel(), Eigen::Vector3d(1, 1, 1), projection_0_1_l);
-        _sensor0r->project(_lmk_1->getPose(), _lmk_1->getModel(), Eigen::Vector3d(1, 1, 1), projection_0_1_r);
+        _sensor0l->project(_lmk_1->getPose(), _lmk_1->getModel(), projection_0_1_l);
+        _sensor0r->project(_lmk_1->getPose(), _lmk_1->getModel(), projection_0_1_r);
         _feat_1 = std::shared_ptr<Point2D>(new Point2D(projection_0_1_l));
         _lmk_1->addFeature(_feat_1);
         _sensor0l->addFeature("pointxd", _feat_1);
@@ -79,8 +79,8 @@ class MeshTest : public testing::Test {
         std::vector<std::shared_ptr<AFeature>> feat_vec_2;
         _lmk_2 = std::shared_ptr<Point3D>(new Point3D(T_w_l2, feat_vec_2));
         std::vector<Eigen::Vector2d> projection_0_2_l, projection_0_2_r;
-        _sensor0l->project(_lmk_2->getPose(), _lmk_2->getModel(), Eigen::Vector3d(1, 1, 1), projection_0_2_l);
-        _sensor0r->project(_lmk_2->getPose(), _lmk_2->getModel(), Eigen::Vector3d(1, 1, 1), projection_0_2_r);
+        _sensor0l->project(_lmk_2->getPose(), _lmk_2->getModel(), projection_0_2_l);
+        _sensor0r->project(_lmk_2->getPose(), _lmk_2->getModel(), projection_0_2_r);
         _feat_2 = std::shared_ptr<Point2D>(new Point2D(projection_0_2_l));
         _lmk_2->addFeature(_feat_2);
         _sensor0l->addFeature("pointxd", _feat_2);
@@ -91,8 +91,8 @@ class MeshTest : public testing::Test {
         std::vector<std::shared_ptr<AFeature>> feat_vec_3;
         _lmk_3 = std::shared_ptr<Point3D>(new Point3D(T_w_l3, feat_vec_3));
         std::vector<Eigen::Vector2d> projection_0_3_l, projection_0_3_r;
-        _sensor0l->project(_lmk_3->getPose(), _lmk_3->getModel(), Eigen::Vector3d(1, 1, 1), projection_0_3_l);
-        _sensor0r->project(_lmk_2->getPose(), _lmk_2->getModel(), Eigen::Vector3d(1, 1, 1), projection_0_3_r);
+        _sensor0l->project(_lmk_3->getPose(), _lmk_3->getModel(), projection_0_3_l);
+        _sensor0r->project(_lmk_2->getPose(), _lmk_2->getModel(), projection_0_3_r);
         _feat_3 = std::shared_ptr<Point2D>(new Point2D(projection_0_3_l));
         _lmk_3->addFeature(_feat_3);
         _sensor0l->addFeature("pointxd", _feat_3);

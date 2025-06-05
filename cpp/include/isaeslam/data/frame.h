@@ -55,7 +55,7 @@ class Frame : public std::enable_shared_from_this<Frame> {
     }
 
     // add landmark
-    void addLandmark(std::shared_ptr<ALandmark> ldmk) { _landmarks[ldmk->getLandmarkLabel()].push_back(ldmk); }
+    void addLandmark(std::shared_ptr<ALandmark> ldmk) { _landmarks[ldmk->_label].push_back(ldmk); }
     void addLandmarks(isae::typed_vec_landmarks ldmks) {
         for (auto typed_ldmks : ldmks) {
             for (auto l : typed_ldmks.second)
