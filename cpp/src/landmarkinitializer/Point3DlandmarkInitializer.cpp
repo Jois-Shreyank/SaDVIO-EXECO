@@ -102,10 +102,6 @@ bool Point3DLandmarkInitializer::initLandmarkWithDepth(std::vector<std::shared_p
                                                        std::shared_ptr<ALandmark> &landmark) {
 
     std::vector<std::vector<Eigen::Vector3d>> all_p3ds;
-    for (auto f : features) {
-        std::vector<Eigen::Vector3d> p3ds = f->getSensor()->getP3Dcam(f);
-        all_p3ds.push_back(p3ds);
-    }
 
     Eigen::Vector3d position;
     for (auto p3ds : all_p3ds)

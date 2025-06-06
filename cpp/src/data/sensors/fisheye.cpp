@@ -88,15 +88,14 @@ Eigen::Vector3d Omni::getRayCamera(Eigen::Vector2d f) {
         mx_u = mx_d;
         my_u = my_d;
     } else {
+        
         // Apply inverse distortion model
-
         double k1 = _D(0);
         double k2 = _D(1);
         double p1 = _D(2);
         double p2 = _D(3);
 
         // Inverse distortion model
-        // proposed by Heikkila
         mx2_d       = mx_d * mx_d;
         my2_d       = my_d * my_d;
         mxy_d       = mx_d * my_d;

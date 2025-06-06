@@ -7,11 +7,17 @@
 
 namespace isae {
 
+/*!
+ * @brief An image sensor class that uses a double sphere model.
+ *
+ * The implmementation of the double sphere model is based on the paper:
+ * "The Double Sphere Camera Model" by Usenko et al.
+ * Available at https://arxiv.org/abs/1807.08957
+ */
 class DoubleSphere : public ImageSensor {
 
   public:
-    DoubleSphere(const cv::Mat &image, Eigen::Matrix3d K, double alpha, double xi)
-        : ImageSensor() {
+    DoubleSphere(const cv::Mat &image, Eigen::Matrix3d K, double alpha, double xi) : ImageSensor() {
         _calibration = K;
         _raw_data    = image.clone();
         _alpha       = alpha;
@@ -37,16 +43,11 @@ class DoubleSphere : public ImageSensor {
     Eigen::Vector3d getRayCamera(Eigen::Vector2d f);
     Eigen::Vector3d getRay(Eigen::Vector2d f);
     double getFocal() override { return (_calibration(0, 0) + _calibration(1, 1)) / 2; }
-    const cv::Mat &getDepthMat() override { return _raw_data; }
-    std::vector<Eigen::Vector3d> getP3Dcam(const std::shared_ptr<AFeature> &feature) override {
-        std::vector<Eigen::Vector3d> p3ds;
-        return p3ds;
-    }
 
   private:
     std::string _model;
-    double _alpha;
-    double _xi;
+    double _alpha; //!> Alpha parameter for the double sphere model
+    double _xi;    //!> Xi parameter for the double sphere model
 };
 
 } // namespace isae

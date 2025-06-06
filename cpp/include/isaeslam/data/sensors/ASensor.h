@@ -16,12 +16,21 @@ namespace isae {
 class Frame;
 class AFeature;
 
+/*!
+* Basic characteristics of a sensor
+*/
 struct sensor_config {
     std::string sensor_type;
     std::string ros_topic;
     Eigen::Affine3d T_s_f;
 };
 
+/*!
+* @brief Abstract class for all sensors
+*
+* This class provides a common interface for all sensors in the SLAM system.
+* It contains a reference to a frame, its extrinsic and its type.
+*/
 class ASensor {
   public:
     ASensor(std::string type) { _type = type; }
@@ -55,6 +64,12 @@ class ASensor {
     std::mutex _sensor_mtx;
 };
 
+/*!
+* @brief Camera configuration
+*
+* This struct contains the intrinsic parameters of the camera, its projection model,
+* its width and height, and parameters for distortion and fisheye models.
+*/
 struct cam_config : sensor_config {
     Eigen::Matrix3d K;
     std::string proj_model;
@@ -75,71 +90,113 @@ struct cam_config : sensor_config {
     double xi;
 };
 
+/*!
+* @brief Abstract class for image sensors
+*
+* This class inherits from ASensor and provides additional functionalities specific to image sensors.
+* It includes methods for handling depth data, image pyramids, feature extraction, and projection.
+* It has also all the methods to apply image processing techniques such as CLAHE, histogram equalization etc...
+*/
 class ImageSensor : public ASensor, public std::enable_shared_from_this<ImageSensor> {
 
   public:
     ImageSensor() : ASensor("image") {}
     ~ImageSensor() {}
 
-    // For RGBD sensors
+    // For RGBD sensors TODO
     bool hasDepth() { return _has_depth; }
-    virtual const cv::Mat &getDepthMat()                                                     = 0;
-    virtual std::vector<Eigen::Vector3d> getP3Dcam(const std::shared_ptr<AFeature> &feature) = 0;
 
-    // To do: unify these functions
+    /*!
+    * @brief Get the ray in camera coordinates
+    */
     virtual Eigen::Vector3d getRayCamera(Eigen::Vector2d f) = 0;
+
+    /*!
+    * @brief Get the ray in world coordinates
+    */
     virtual Eigen::Vector3d getRay(Eigen::Vector2d f)       = 0;
+
+    /*!
+    * @brief Compute the focal length of the camera
+    *
+    * Virtual function because it depends on the camera model.
+    */
     virtual double getFocal()                               = 0;
 
-    // return sensor rawData
     cv::Mat getRawData() { return _raw_data; }
 
-    // Get and Set img pyramide
     void setPyr(const std::vector<cv::Mat> &img_pyr) { _img_pyr = img_pyr; }
     const std::vector<cv::Mat> getPyr() { return _img_pyr; }
 
-    // apply CLAHE
+    /*!
+    * @brief Apply CLAHE (Contrast Limited Adaptive Histogram Equalization) to the image
+    */
     void applyCLAHE(float clahe_clip);
 
-    // Histo equalization
+    /*!
+    * @brief Apply histogram equalization to the image
+    */
     void histogramEqualization();
 
-    // image normalization
+    /*!
+    * @brief Apply Image normalization to the image
+    */
     void imageNormalization();
 
-    // adaptive gamma correction
+    /*!
+    * @brief Apply adaptive gamme correction
+    */
     void applyAGCWD(float alpha);
 
-    // return sensor mask for feature extraction
     void setMask(cv::Mat mask) { _mask = mask; }
     cv::Mat getMask() { return _mask; }
+    Eigen::Matrix3d getCalibration() { return _calibration; }
 
-    // return calibration
-    Eigen::Matrix3d getCalibration();
-
-    // add features of the given type to the camera
+    /*!
+    * @brief Add a single feature and compute its bearing vector
+    */
     void addFeature(std::string feature_label, std::shared_ptr<AFeature> f);
+
+    /*!
+    * @brief Add a vector of features and compute their bearing vectors
+    */
     void addFeatures(std::string feature_label, std::vector<std::shared_ptr<AFeature>> features);
+
     void removeFeature(std::shared_ptr<AFeature> f);
 
-    // return all detected features
     typed_vec_features &getFeatures() {
         std::lock_guard<std::mutex> lock(_cam_mtx);
         return _features;
     }
+
+    /*!
+    * @brief Clear all features of a specific type
+    */
     void purgeFeatures(std::string feature_label) { _features[feature_label].clear(); }
 
-    // return desired type of detected features
+    /*!
+    * @brief Get features of a specific type
+    */
     std::vector<std::shared_ptr<AFeature>> &getFeatures(std::string feature_label);
 
-    // Projection function with or without jacobian computation
+    /*!
+    * @brief Virtual function to project a landmark in the image plane
+    */
     virtual bool project(const Eigen::Affine3d &T_w_lmk,
                          const std::shared_ptr<AModel3d> ldmk_model,
                          std::vector<Eigen::Vector2d> &p2d_vector) = 0;
+
+    /*!
+    * @brief Virtual function to project a landmark in the image plane with the pose of the frame
+    */
     virtual bool project(const Eigen::Affine3d &T_w_lmk,
                          const std::shared_ptr<AModel3d> ldmk_model,
                          const Eigen::Affine3d &T_f_w,
                          std::vector<Eigen::Vector2d> &p2d_vector) = 0;
+    
+    /*!
+    * @brief Virtual function to project a landmark and compute the Jacobian of the projection
+    */
     virtual bool project(const Eigen::Affine3d &T_w_lmk,
                          const Eigen::Affine3d &T_f_w,
                          const Eigen::Matrix2d sqrt_info,
@@ -148,12 +205,12 @@ class ImageSensor : public ASensor, public std::enable_shared_from_this<ImageSen
                          double *J_proj_lmk)                       = 0;
 
   protected:
-    Eigen::Matrix3d _calibration;  // intrinsic matrix of the camera (sensor ?)
-    cv::Mat _raw_data;             // Raw img data
-    std::vector<cv::Mat> _img_pyr; // Img pyramid for KLT tracking
-    cv::Mat _mask;                 // mask to remove
-    typed_vec_features _features;  // Vector of features
-    bool _has_depth;               // Is it a RGBD ?
+    Eigen::Matrix3d _calibration;  //!> intrinsic matrix of the camera (sensor ?)
+    cv::Mat _raw_data;             //!> Raw image data
+    std::vector<cv::Mat> _img_pyr; //!> Image pyramid for multi-scale processing
+    cv::Mat _mask;                 //!> Mask to ignore
+    typed_vec_features _features;  //!> Typed vector of features
+    bool _has_depth;               //!> Is it a RGBD ?
 
     std::mutex _cam_mtx;
 };
