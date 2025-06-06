@@ -1,4 +1,5 @@
 #include "isaeslam/estimator/ESKFEstimator.h"
+#include "isaeslam/estimator/EpipolarPoseEstimator.h"
 #include "isaeslam/slamCore.h"
 
 namespace isae {
@@ -182,12 +183,10 @@ bool SLAMBiMonoVIO::step_init() {
 
         // Epipolar Filtering for matches in time
         isae::timer::tic();
-        int removed_matching_nb = _matches_in_time["pointxd"].size() + _matches_in_time_lmk["pointxd"].size();
+        int removed_matching_nb = _matches_in_time["pointxd"].size();
         _matches_in_time =
             epipolarFiltering(getLastKF()->getSensors().at(0), _frame->getSensors().at(0), _matches_in_time);
-        _matches_in_time_lmk =
-            epipolarFiltering(getLastKF()->getSensors().at(0), _frame->getSensors().at(0), _matches_in_time_lmk);
-        removed_matching_nb -= _matches_in_time["pointxd"].size() + _matches_in_time_lmk["pointxd"].size();
+        removed_matching_nb -= _matches_in_time["pointxd"].size();
         _removed_feat = (_removed_feat * (_nframes - 1) + removed_matching_nb) / _nframes;
         _avg_filter_t = (_avg_filter_t * (_nframes - 1) + isae::timer::silentToc()) / _nframes;
 
@@ -382,12 +381,10 @@ bool SLAMBiMonoVIO::frontEndStep() {
 
         // Epipolar Filtering for matches in time
         isae::timer::tic();
-        int removed_matching_nb = _matches_in_time["pointxd"].size() + _matches_in_time_lmk["pointxd"].size();
+        int removed_matching_nb = _matches_in_time["pointxd"].size();
         _matches_in_time =
             epipolarFiltering(getLastKF()->getSensors().at(0), _frame->getSensors().at(0), _matches_in_time);
-        _matches_in_time_lmk =
-            epipolarFiltering(getLastKF()->getSensors().at(0), _frame->getSensors().at(0), _matches_in_time_lmk);
-        removed_matching_nb -= _matches_in_time["pointxd"].size() + _matches_in_time_lmk["pointxd"].size();
+        removed_matching_nb -= _matches_in_time["pointxd"].size();
         float epi_dt  = isae::timer::silentToc();
         _removed_feat = (_removed_feat * (_nframes - 1) + removed_matching_nb) / _nframes;
         _avg_filter_t = (_avg_filter_t * (_nframes - 1) + epi_dt) / _nframes;
@@ -431,7 +428,6 @@ bool SLAMBiMonoVIO::frontEndStep() {
         // - All matches in time are removed
         // Can be improved: redetect new points, retrack old features....
         _successive_fails++;
-        _frame->setWorld2FrameTransform(T_f_w);
         outlierRemoval();
         _frame->setKeyFrame();
     }
@@ -580,9 +576,16 @@ bool SLAMBiMonoVIO::backEndStep() {
         float marg_dt = isae::timer::silentToc();
         _avg_marg_t   = (_avg_marg_t * (_nkeyframes - 1) + marg_dt) / _nkeyframes;
 
+        // Eigen::Affine3d T_w_f = _frame_to_optim->getWorld2FrameTransform();
+
         // Optimize Local Map
         isae::timer::tic();
         _slam_param->getOptimizerBack()->localMapVIOptimization(_local_map, _local_map->getFixedFrameNumber());
+
+        // Vector6d dV = geometry::se3_RTtoVec6d(
+        //     _frame_to_optim->getWorld2FrameTransform() * T_w_f.inverse());
+        // optim_err = ((optim_err * (_nkeyframes - 1)) / _nkeyframes) + dV.norm() / _nkeyframes;
+        // std::cout << "avg error before optim : " << optim_err << std::endl;
 
         // Update current IMU biases after optimization
         _frame_to_optim->getIMU()->updateBiases();

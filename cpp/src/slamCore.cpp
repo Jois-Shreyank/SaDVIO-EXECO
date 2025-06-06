@@ -242,7 +242,7 @@ typed_vec_match SLAMCore::epipolarFiltering(std::shared_ptr<ImageSensor> &cam0,
         double residual = std::abs(epiplane_normal.dot(ray2));
 
         // The angular threshold is set to 1 degree
-        if (90 - std::acos(residual) * 180 / M_PI < 0.5)
+        if (90 - std::acos(residual) * 180 / M_PI < 1)
             valid_matches["pointxd"].push_back(m);
         else
             m.second->setOutlier();
@@ -442,8 +442,6 @@ bool SLAMCore::predict(std::shared_ptr<Frame> &f) {
     if (!_slam_param->getPoseEstimator()->estimateTransformBetween(
             getLastKF(), f, _matches_in_time_lmk["pointxd"], T_last_curr, covdT)) {
         std::cerr << "Predict fails, PnP failed" << std::endl;
-
-        f->setWorld2FrameTransform(T_const.inverse() * getLastKF()->getWorld2FrameTransform());
         return false;
     } else {
 
@@ -455,7 +453,7 @@ bool SLAMCore::predict(std::shared_ptr<Frame> &f) {
                 std::cerr << "Predict fails, PnP pose is not valid" << std::endl;
                 std::cout << "T_last_curr: " << T_last_curr.translation().transpose() << std::endl;
                 std::cout << "T_const: " << T_const.translation().transpose() << std::endl;
-                f->setWorld2FrameTransform(T_const.inverse() * getLastKF()->getWorld2FrameTransform());
+                _matches_in_time_lmk["pointxd"].clear(); // The matches are not valid, clear them
                 return false;
             }
         }

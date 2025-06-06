@@ -270,12 +270,10 @@ bool SLAMMonoVIO::step_init() {
 
         // Epipolar Filtering for matches in time
         isae::timer::tic();
-        int removed_matching_nb = _matches_in_time["pointxd"].size() + _matches_in_time_lmk["pointxd"].size();
+        int removed_matching_nb = _matches_in_time["pointxd"].size();
         _matches_in_time =
             epipolarFiltering(getLastKF()->getSensors().at(0), _frame->getSensors().at(0), _matches_in_time);
-        _matches_in_time_lmk =
-            epipolarFiltering(getLastKF()->getSensors().at(0), _frame->getSensors().at(0), _matches_in_time_lmk);
-        removed_matching_nb -= _matches_in_time["pointxd"].size() + _matches_in_time_lmk["pointxd"].size();
+        removed_matching_nb -= _matches_in_time["pointxd"].size();
         _removed_feat = (_removed_feat * (_nframes - 1) + removed_matching_nb) / _nframes;
         _avg_filter_t = (_avg_filter_t * (_nframes - 1) + isae::timer::silentToc()) / _nframes;
 
@@ -454,12 +452,10 @@ bool SLAMMonoVIO::frontEndStep() {
 
         // Epipolar Filtering for matches in time
         isae::timer::tic();
-        int removed_matching_nb = _matches_in_time["pointxd"].size() + _matches_in_time_lmk["pointxd"].size();
+        int removed_matching_nb = _matches_in_time["pointxd"].size();
         _matches_in_time =
             epipolarFiltering(getLastKF()->getSensors().at(0), _frame->getSensors().at(0), _matches_in_time);
-        _matches_in_time_lmk =
-            epipolarFiltering(getLastKF()->getSensors().at(0), _frame->getSensors().at(0), _matches_in_time_lmk);
-        removed_matching_nb -= _matches_in_time["pointxd"].size() + _matches_in_time_lmk["pointxd"].size();
+        removed_matching_nb -= _matches_in_time["pointxd"].size();
         _removed_feat = (_removed_feat * (_nframes - 1) + removed_matching_nb) / _nframes;
         _avg_filter_t = (_avg_filter_t * (_nframes - 1) + isae::timer::silentToc()) / _nframes;
 
