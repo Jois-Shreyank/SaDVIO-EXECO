@@ -98,14 +98,12 @@ bool IMU::processIMU() {
     return true;
 }
 
-void IMU::estimateTransform(const std::shared_ptr<Frame> &frame1,
-                            const std::shared_ptr<Frame> &frame2,
-                            Eigen::Affine3d &dT) {
+void IMU::estimateTransformIMU(Eigen::Affine3d &dT) {
 
-    double dt                     = (frame2->getTimestamp() - frame1->getTimestamp()) * 1e-9;
+    double dt                     = (_frame.lock()->getTimestamp() - _last_kf.lock()->getTimestamp()) * 1e-9;
     dT                            = Eigen::Affine3d::Identity();
-    Eigen::Matrix3d R1            = frame1->getWorld2FrameTransform().rotation();
-    dT.translation()              = _delta_p + R1 * frame1->getIMU()->getVelocity() * dt + 0.5 * R1 * g * dt * dt;
+    Eigen::Matrix3d R1            = _last_kf.lock()->getWorld2FrameTransform().rotation();
+    dT.translation()              = _delta_p + R1 * _last_kf.lock()->getIMU()->getVelocity() * dt + 0.5 * R1 * g * dt * dt;
     dT.affine().block(0, 0, 3, 3) = _delta_R;
 }
 

@@ -529,8 +529,6 @@ bool SLAMMonoVIO::frontEndStep() {
             _frame->setWorld2FrameTransform(T_f_w);
         }
 
-        _frame->getIMU()->estimateTransform(getLastKF(), _frame, dT);
-
         // Landmark Initialization:
         // - Triangulate new points : LR + (n-1) / n
         // - Optimize points only because optimal mid-point is not optimal for LM
