@@ -5,6 +5,9 @@
 
 namespace isae {
 
+/*!
+ * @brief Class for detecting and computing GFTT (Good Features To Track) features using OpenCV.
+ */
 class cvGFTTFeatureDetector : public AOpenCVFeatureDetector {
   public:
     cvGFTTFeatureDetector(int n, int n_per_cell, double max_matching_dist = 64)
@@ -14,13 +17,13 @@ class cvGFTTFeatureDetector : public AOpenCVFeatureDetector {
         _descriptor        = cv::ORB::create();
     }
     void init() override {}
-    double getDist(const cv::Mat &desc1, const cv::Mat &desc2) const override {
+    double computeDist(const cv::Mat &desc1, const cv::Mat &desc2) const override {
         return cv::norm(desc1, desc2, _descriptor->defaultNorm());
     }
-    std::vector<std::shared_ptr<AFeature>> detectAndComputeGrid(
-        const cv::Mat &img,
-        const cv::Mat &mask,
-        std::vector<std::shared_ptr<AFeature>> existing_features) override;
+    std::vector<std::shared_ptr<AFeature>>
+    detectAndComputeGrid(const cv::Mat &img,
+                         const cv::Mat &mask,
+                         std::vector<std::shared_ptr<AFeature>> existing_features) override;
 };
 
 } // namespace isae

@@ -9,7 +9,9 @@
 namespace isae {
 
 
-
+/*!
+* @brief Class for matching 2D point features 
+*/
 class Point2DFeatureMatcher : public AFeatureMatcher{
 public:
 

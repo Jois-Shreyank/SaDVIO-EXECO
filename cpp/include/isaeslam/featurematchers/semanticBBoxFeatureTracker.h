@@ -8,6 +8,9 @@
 #include "isaeslam/featurematchers/semanticBBoxFeatureMatcher.h"
 namespace isae {
 
+/*!
+ * @brief Class for tracking 2D bounding boxes features
+ */
 class semanticBBoxFeatureTracker : public AFeatureTracker {
   public:
     semanticBBoxFeatureTracker() {}
@@ -31,9 +34,9 @@ class semanticBBoxFeatureTracker : public AFeatureTracker {
   private:
     std::shared_ptr<semanticBBoxFeatureMatcher> _matcher;
 
-    cv::TermCriteria _termCrit; //< termination criteria for the optical flow algorithm
-    double _klt_max_err       = 50.;
-    double _max_backward_dist = 2.5;
+    cv::TermCriteria _termCrit;      //!< termination criteria for the optical flow algorithm
+    double _klt_max_err       = 50.; //!< maximum error for KLT tracking
+    double _max_backward_dist = 2.5; //!< maximum distance for backward tracking
 };
 
 } // namespace isae

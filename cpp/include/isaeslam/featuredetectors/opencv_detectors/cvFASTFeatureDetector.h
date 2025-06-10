@@ -5,6 +5,9 @@
 
 namespace isae {
 
+/*!
+ * @brief Class for detecting and computing FAST features using OpenCV.
+ */
 class cvFASTFeatureDetector : public AOpenCVFeatureDetector {
   public:
     cvFASTFeatureDetector(int n, int n_per_cell, double max_matching_dist = 64)
@@ -14,7 +17,7 @@ class cvFASTFeatureDetector : public AOpenCVFeatureDetector {
     }
 
     void init() override;
-    double getDist(const cv::Mat &desc1, const cv::Mat &desc2) const override;
+    double computeDist(const cv::Mat &desc1, const cv::Mat &desc2) const override;
 };
 
 } // namespace isae

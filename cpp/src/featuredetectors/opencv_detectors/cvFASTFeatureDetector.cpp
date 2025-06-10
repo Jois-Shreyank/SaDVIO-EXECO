@@ -9,7 +9,7 @@ void cvFASTFeatureDetector::init() {
     _descriptor = cv::ORB::create();
 }
 
-double cvFASTFeatureDetector::getDist(const cv::Mat &desc1, const cv::Mat &desc2) const {
+double cvFASTFeatureDetector::computeDist(const cv::Mat &desc1, const cv::Mat &desc2) const {
 
     return cv::norm(desc1, desc2, _descriptor->defaultNorm());
 }

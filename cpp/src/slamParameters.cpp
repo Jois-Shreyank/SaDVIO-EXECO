@@ -177,10 +177,6 @@ void isae::SLAMParameters::createLandmarkInitializers() {
             std::cout << "+ Adding Line3DLandmarkInitializer " << std::endl;
             isae::Line3DLandmarkInitializer lineInit(config_line.number_kept_features);
             _lmk_init_map[config_line.label_feature] = std::make_shared<Line3DLandmarkInitializer>(lineInit);
-
-        } else if (config_line.lmk_triangulator == "EllipsePatternLandmarkInitializer") {
-            std::cout << "+ Adding EllipsePatternLandmarkInitializer -- TODO" << std::endl;
-
         } else if (config_line.lmk_triangulator == "semanticBBoxLandmarkInitializer") {
             std::cout << "+ Adding semanticBBoxLandmarkInitializer" << std::endl;
             isae::semanticBBoxLandmarkInitializer bboxInit(config_line.number_kept_features);

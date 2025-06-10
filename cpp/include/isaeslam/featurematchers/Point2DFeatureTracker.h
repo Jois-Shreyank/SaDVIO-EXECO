@@ -8,6 +8,9 @@
 
 namespace isae {
 
+/*!
+ * @brief Class for tracking 2D point features
+ */
 class Point2DFeatureTracker : public AFeatureTracker {
   public:
     Point2DFeatureTracker() {}
@@ -27,7 +30,7 @@ class Point2DFeatureTracker : public AFeatureTracker {
                bool backward      = false) override;
 
   private:
-    cv::TermCriteria _termCrit; //< termination criteria for the optical flow algorithm
+    cv::TermCriteria _termCrit; //!< termination criteria for the optical flow algorithm
 };
 
 } // namespace isae

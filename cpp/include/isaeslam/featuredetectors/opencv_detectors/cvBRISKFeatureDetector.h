@@ -5,6 +5,9 @@
 
 namespace isae {
 
+/*!
+ * @brief Class for detecting and computing BRISK features using OpenCV.
+ */
 class cvBRISKFeatureDetector : public AOpenCVFeatureDetector {
   public:
     cvBRISKFeatureDetector(int n, int n_per_cell, double max_matching_dist = 64)
@@ -14,7 +17,7 @@ class cvBRISKFeatureDetector : public AOpenCVFeatureDetector {
     }
 
     void init() override;
-    double getDist(const cv::Mat &desc1, const cv::Mat &desc2) const override;
+    double computeDist(const cv::Mat &desc1, const cv::Mat &desc2) const override;
 };
 
 } // namespace isae

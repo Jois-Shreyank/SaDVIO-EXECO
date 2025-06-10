@@ -10,8 +10,9 @@
 
 namespace isae {
 
-
-
+/*!
+* @brief Class for matching 2D line features 
+*/
 class Line2DFeatureMatcher : public AFeatureMatcher{
 public:
 

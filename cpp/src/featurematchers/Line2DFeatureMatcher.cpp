@@ -52,7 +52,7 @@ void Line2DFeatureMatcher::getPossibleMatchesBetween(const std::vector<std::shar
                 continue;
 
             // Check the score
-            double score = _detector->getDist(f->getDescriptor(), f2->getDescriptor());
+            double score = _detector->computeDist(f->getDescriptor(), f2->getDescriptor());
             if (score < best_dist1) {
                 best_dist2 = best_dist1;
                 best_dist1 = score;
@@ -174,7 +174,7 @@ uint Line2DFeatureMatcher::ldmk_match(std::shared_ptr<ImageSensor> &sensor1,
                 if (f->getLandmark().lock())
                     continue;
 
-                double score = _detector->getDist(f->getDescriptor(), lmk->getDescriptor());
+                double score = _detector->computeDist(f->getDescriptor(), lmk->getDescriptor());
 
                 if (score < min1) {
                     min2    = min1;

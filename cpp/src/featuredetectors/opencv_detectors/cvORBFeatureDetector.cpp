@@ -10,7 +10,7 @@ void cvORBFeatureDetector::init()
     _descriptor = _detector;
 }
 
-double cvORBFeatureDetector::getDist(const cv::Mat &desc1, const cv::Mat &desc2) const
+double cvORBFeatureDetector::computeDist(const cv::Mat &desc1, const cv::Mat &desc2) const
 {
 
     return cv::norm(desc1, desc2, _detector->defaultNorm());

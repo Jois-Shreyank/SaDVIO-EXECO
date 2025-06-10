@@ -39,7 +39,7 @@ class CsvKeypointDetector : public ACustomFeatureDetector {
     void computeDescriptor(const cv::Mat &img, std::vector<std::shared_ptr<AFeature>> &features) override;
 
     void init() override;
-    double getDist(const cv::Mat &desc1, const cv::Mat &desc2) const override;
+    double computeDist(const cv::Mat &desc1, const cv::Mat &desc2) const override;
 
   private:
     std::string _folder_path;
