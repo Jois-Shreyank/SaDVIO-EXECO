@@ -4,6 +4,12 @@
 
 namespace isae {
 
+/*!
+* @brief PnPPoseEstimator class for estimating the transformation between two frames using PnP
+*
+* The estimation is done by using the PnP algorithm on the matches between the two frames.
+* The matches must be associated with 3D landmarks.
+*/
 class PnPPoseEstimator : public APoseEstimator {
   public:
     bool estimateTransformBetween(const std::shared_ptr<Frame> &frame1,

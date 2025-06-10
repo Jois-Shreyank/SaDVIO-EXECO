@@ -7,7 +7,7 @@ namespace isae {
 ADataProvider::ADataProvider(std::string path, Config slam_config) {
     _slam_config    = slam_config;
     _nframes        = 0;
-    _img_process_dt = 0;
+
     this->loadSensorsConfiguration(path);
 }
 

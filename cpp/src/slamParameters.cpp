@@ -25,7 +25,6 @@
 #include "isaeslam/landmarkinitializer/semanticBBoxlandmarkInitializer.h"
 
 #include "isaeslam/estimator/EpipolarPoseEstimator.h"
-#include "isaeslam/estimator/EpipolarPoseEstimatorCustom.h"
 #include "isaeslam/estimator/PnPPoseEstimator.h"
 
 #include "isaeslam/optimizers/AngularAdjustmentCERESAnalytic.h"
@@ -204,10 +203,6 @@ void isae::SLAMParameters::createPoseEstimator() {
         isae::PnPPoseEstimator pose_estimator;
         _pose_estimator = std::make_shared<isae::PnPPoseEstimator>(pose_estimator);
 
-    } else if (_config.pose_estimator == "epipolar_custom") {
-        std::cout << "+ Adding EpipolarPoseEstimatorCustom" << std::endl;
-        isae::EpipolarPoseEstimatorCustom pose_estimator;
-        _pose_estimator = std::make_shared<isae::EpipolarPoseEstimatorCustom>(pose_estimator);
     }
 }
 

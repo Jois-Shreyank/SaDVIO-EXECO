@@ -9,7 +9,6 @@ int Frame::_frame_count = 0;
 void Frame::init(const std::vector<std::shared_ptr<isae::ImageSensor>> &sensors, unsigned long long timestamp) {
     _timestamp = timestamp;
     _sensors   = sensors;
-    _T_f_w     = Eigen::Affine3d::Identity();
 
     // increases everytime an object is created
     _frame_count++;
@@ -23,7 +22,6 @@ void Frame::init(const std::vector<std::shared_ptr<isae::ImageSensor>> &sensors,
 
 void Frame::init(std::shared_ptr<IMU> &imu, unsigned long long timestamp) {
     _timestamp = timestamp;
-    _T_f_w     = Eigen::Affine3d::Identity();
 
     // increases everytime an object is created
     _frame_count++;
@@ -37,7 +35,6 @@ void Frame::init(std::shared_ptr<IMU> &imu, unsigned long long timestamp) {
 
 void Frame::init(const std::vector<std::shared_ptr<ASensor>> &sensors, unsigned long long timestamp) {
     _timestamp = timestamp;
-    _T_f_w     = Eigen::Affine3d::Identity();
 
     // increases everytime an object is created
     _frame_count++;
