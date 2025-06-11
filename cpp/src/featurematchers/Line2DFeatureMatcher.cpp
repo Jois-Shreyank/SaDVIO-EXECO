@@ -109,7 +109,7 @@ uint Line2DFeatureMatcher::match(std::vector<std::shared_ptr<AFeature>> &feature
 }
 
 uint Line2DFeatureMatcher::ldmk_match(std::shared_ptr<ImageSensor> &sensor1,
-                                      vec_shared<ALandmark> &ldmks,
+                                      std::vector<std::shared_ptr<ALandmark>> &ldmks,
                                       int searchAreaWidth,
                                       int searchAreaHeight) {
     // For each landmark to match, try to find a feature close

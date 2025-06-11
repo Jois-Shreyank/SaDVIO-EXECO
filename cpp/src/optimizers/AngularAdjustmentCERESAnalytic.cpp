@@ -923,6 +923,8 @@ Eigen::MatrixXd AngularAdjustmentCERESAnalytic::marginalizeRelative(std::shared_
     _map_frame_dbapar.clear();
     _map_frame_dbgpar.clear();
 
+    std::cout << "Marginalizing relative frames  " << std::endl;
+
     // Select the nodes to marginalize / keep
     _marginalization->preMarginalizeRelative(frame0, frame1);
 
@@ -988,6 +990,13 @@ Eigen::MatrixXd AngularAdjustmentCERESAnalytic::marginalizeRelative(std::shared_
             std::make_shared<MarginalizationBlockInfo>(cost_fct_b, parameter_idx_b, parameter_blocks_b));
     }
 
+    if (_marginalization->_lmk_to_marg["pointxd"].size() < 2) {
+        std::cout << "Not enough landmarks to marginalize, returning zero matrix." << std::endl;
+        return Eigen::MatrixXd::Zero(6, 6);
+    }
+
+    std::cout << "Computing visual factors for marginalization." << std::endl;
+
     // Create Marginalization Blocks with landmark to marginalize
     for (auto tlmk : _marginalization->_lmk_to_marg) {
         for (auto lmk : tlmk.second) {
@@ -1028,10 +1037,11 @@ Eigen::MatrixXd AngularAdjustmentCERESAnalytic::marginalizeRelative(std::shared_
         _marginalization->_lmk_to_keep.clear();
         _marginalization->_marginalization_blocks.clear();
         _marginalization_last->_lmk_to_keep.clear();
-        return Eigen::MatrixXd::Zero(12,12);
+        return Eigen::MatrixXd::Zero(6,6);
     }
 
     // Compute the relative pose factor with NFR
+    std::cout << "you are computing the relative pose factor with NFR" << std::endl;
 
     // Build a marginalization block to compute the jacobian
     Eigen::Affine3d T_w_a         = frame0->getFrame2WorldTransform();
@@ -1051,16 +1061,14 @@ Eigen::MatrixXd AngularAdjustmentCERESAnalytic::marginalizeRelative(std::shared_
     Eigen::MatrixXd J   = Eigen::MatrixXd::Zero(6, 12);
     J.block(0, 0, 6, 6) = block_relpose._jacobians.at(0);
     J.block(0, 6, 6, 6) = block_relpose._jacobians.at(1);
-    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> saes(_marginalization->_Ak);
-    Eigen::MatrixXd Ak_inv =
-        saes.eigenvectors() *
-        Eigen::VectorXd((saes.eigenvalues().array() > 1e-12).select(saes.eigenvalues().array().inverse(), 0))
-            .asDiagonal() *
-        saes.eigenvectors().transpose();
     Eigen::MatrixXd cov = J * _marginalization->_Sigma_k * J.transpose();
-    Eigen::MatrixXd inf = cov.inverse();
 
-    return inf;
+    if (cov.hasNaN()) {
+        std::cout << "Covariance is not valid, returning zero matrix." << std::endl;
+        return Eigen::MatrixXd::Identity(6, 6);
+    }
+
+    return cov;
 }
 
 } // namespace isae

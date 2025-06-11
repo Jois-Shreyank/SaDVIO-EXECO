@@ -72,7 +72,6 @@ uint ALandmarkInitializer::initFromMatch(feature_pair match) {
         if (!l)
             return 0;
         // A new landmark has been created at this frame, add it
-        _initialized_landmarks[f1->getFeatureLabel()].push_back(l);
         l->setDescriptor(f1->getDescriptor());
 
         f2->getSensor()->getFrame()->addLandmark(l);
@@ -90,8 +89,6 @@ uint ALandmarkInitializer::initFromMatch(feature_pair match) {
         // update the descriptor
         l1->setDescriptor(f2->getDescriptor());
 
-        _initialized_landmarks[f1->getFeatureLabel()].push_back(l1);
-
         // if f1 & f2 are not from the same frame, add landmark to frame 2 also
         if (f1->getSensor()->getFrame() != f2->getSensor()->getFrame())
             f2->getSensor()->getFrame()->addLandmark(l1);
@@ -106,7 +103,6 @@ uint ALandmarkInitializer::initFromMatch(feature_pair match) {
         // update the descriptor
         l2->setDescriptor(f1->getDescriptor());
 
-        _initialized_landmarks[f1->getFeatureLabel()].push_back(l1);
         // if f1 & f2 are not from the same frame, add landmark to frame 2 also
         if (f1->getSensor()->getFrame() != f2->getSensor()->getFrame())
             f1->getSensor()->getFrame()->addLandmark(l2);

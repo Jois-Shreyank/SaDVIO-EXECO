@@ -95,24 +95,12 @@ void SLAMCore::updateLandmarks(typed_vec_match matches_lmk) {
 
 void SLAMCore::initLandmarks(std::shared_ptr<Frame> &f) {
 
-    // Get number of landmarks requested per type (defined in the tracker and provided in yaml)
-    std::map<std::string, int> N;
-    for (auto &tracker : _slam_param->getLandmarksInitializer()) {
-        N[tracker.first] = tracker.second->getNbRequieredLdmk();
-
-        // Check number of missing landmarks after map update
-        N[tracker.first] = N[tracker.first] - f->getLandmarks()[tracker.first].size();
-    }
-
     // Init unitialized landmarks
     for (auto &ttracks_in_time : _matches_in_time_lmk) {
 
         // Init all tracked feature in frame
         int nb_created = 0;
         for (auto &ttime : ttracks_in_time.second) {
-            // Check if we have enough landmarks
-            if (N[ttracks_in_time.first] - nb_created <= 0)
-                break;
 
             // Check if the landmark is not initialized
             if (ttime.first->getLandmark().lock()) {
@@ -128,7 +116,6 @@ void SLAMCore::initLandmarks(std::shared_ptr<Frame> &f) {
             _slam_param->getLandmarksInitializer()[ttracks_in_time.first]->initFromFeatures(features);
             nb_created++;
         }
-        N[ttracks_in_time.first] = N[ttracks_in_time.first] - nb_created;
     }
 
     // Init landmarks with tracks in time (+ seek for matches in frame if in stereo)
@@ -139,10 +126,6 @@ void SLAMCore::initLandmarks(std::shared_ptr<Frame> &f) {
         int nb_created = 0;
         for (auto &ttime : ttracks_in_time.second) {
             std::vector<std::shared_ptr<AFeature>> feats;
-
-            // Check if we have enougth landmarks
-            if (N[ttracks_in_time.first] - nb_created <= 0)
-                break;
 
             to_init.push_back(ttime);
             feats.push_back(ttime.first);
@@ -170,9 +153,6 @@ void SLAMCore::initLandmarks(std::shared_ptr<Frame> &f) {
 
             _slam_param->getLandmarksInitializer()[ttracks_in_time.first]->initFromFeatures(feats);
         }
-
-        // Check number of missing landmarks after tracks_in_time_lmk
-        N[ttracks_in_time.first] = N[ttracks_in_time.first] - nb_created;
     }
 
     // Initializing landmarks with L / R matches only in the worst case
@@ -183,9 +163,6 @@ void SLAMCore::initLandmarks(std::shared_ptr<Frame> &f) {
         vec_match to_init;
         int nb_created = 0;
         for (auto &tframe : ttracks_in_frame.second) {
-            // Check if we have enough landmarks
-            if (N[ttracks_in_frame.first] - nb_created <= 0)
-                break;
 
             // Check if the feat has enough parallax
             if ((tframe.first->getPoints().at(0) - tframe.second->getPoints().at(0)).norm() < 4) {
@@ -201,7 +178,6 @@ void SLAMCore::initLandmarks(std::shared_ptr<Frame> &f) {
             }
         }
         _slam_param->getLandmarksInitializer()[ttracks_in_frame.first]->initFromMatches(to_init);
-        N[ttracks_in_frame.first] = N[ttracks_in_frame.first] - nb_created;
     }
 }
 

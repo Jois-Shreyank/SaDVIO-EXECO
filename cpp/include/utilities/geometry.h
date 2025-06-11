@@ -93,7 +93,7 @@ inline double dist2EpipolarLine(const Eigen::Vector3d &epipolarline, const Eigen
     return fabs(epipolarline.dot(Eigen::Vector3d(pt_to_test(1), pt_to_test(0), 1.)));
 }
 
-inline double getMaxAngleBetweenVectors(vec3d vecs) {
+inline double getMaxAngleBetweenVectors(std::vector<Eigen::Vector3d> vecs) {
     double max = 0;
     if (vecs.empty())
         return -1;

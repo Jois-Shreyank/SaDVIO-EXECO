@@ -41,7 +41,6 @@ ConfigFileReader::ConfigFileReader(const std::string &path_config_folder) {
         feature_struct.label_feature            = (*it)["label_feature"].as<std::string>();
         feature_struct.detector_label           = (*it)["detector_label"].as<std::string>();
         feature_struct.number_detected_features = (*it)["number_detected_features"].as<int>();
-        feature_struct.number_kept_features     = (*it)["number_kept_features"].as<int>();
         feature_struct.n_features_per_cell      = (*it)["n_features_per_cell"].as<int>();
         feature_struct.tracker_label            = (*it)["tracker_label"].as<std::string>();
         feature_struct.tracker_height           = (*it)["tracker_height"].as<int>();

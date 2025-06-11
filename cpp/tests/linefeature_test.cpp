@@ -189,7 +189,7 @@ TEST_F(LineFeatureTest, LineFeatureTriangulation) {
     _frame0->getSensors().at(0)->addFeature("linexd", f1);
     _frame0->getSensors().at(1)->addFeature("linexd", f2);
 
-    Line3DLandmarkInitializer ldmkInit(2);
+    Line3DLandmarkInitializer ldmkInit;
     ldmkInit.initFromFeatures(features);
     typed_vec_landmarks ldmks = _frame0->getLandmarks();
 
@@ -335,10 +335,9 @@ TEST_F(LineFeatureTest, LineFeatureMatching) {
     // cv::imshow("I2t", I2t);    
     // cv::waitKey(0);
 
-    Line3DLandmarkInitializer ldmkInit(2);
+    Line3DLandmarkInitializer ldmkInit;
     ldmkInit.initFromMatches(matches);
 
-    //typed_vec_landmarks ldmks = ldmkInit.getInitializedLandmarks();
     typed_vec_landmarks ldmks = _frame0->getLandmarks();
     std::cout << ldmks["linexd"].size() << std::endl;
 

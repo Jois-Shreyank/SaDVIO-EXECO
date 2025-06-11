@@ -7,10 +7,12 @@
 
 namespace isae {
 
+/*!
+ * @brief Class for initializing 3D point landmarks.
+ */
 class Point3DLandmarkInitializer : public ALandmarkInitializer {
   public:
-    Point3DLandmarkInitializer(uint nb_requiered_ldmk)
-        : ALandmarkInitializer(nb_requiered_ldmk) {}
+    Point3DLandmarkInitializer() = default;
 
   private:
     bool initLandmark(std::vector<std::shared_ptr<AFeature>> features, std::shared_ptr<ALandmark> &landmark) override;

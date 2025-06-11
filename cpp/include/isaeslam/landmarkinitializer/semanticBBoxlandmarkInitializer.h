@@ -7,10 +7,12 @@
 
 namespace isae {
 
+/*!
+ * @brief Class for initializing semantic bounding box landmarks.
+ */
 class semanticBBoxLandmarkInitializer : public ALandmarkInitializer {
   public:
-    semanticBBoxLandmarkInitializer(uint nb_requiered_ldmk)
-        : ALandmarkInitializer(nb_requiered_ldmk) {}
+    semanticBBoxLandmarkInitializer() = default;
 
   private:
     bool initLandmark(std::vector<std::shared_ptr<AFeature>> features, std::shared_ptr<ALandmark> &landmark) override;

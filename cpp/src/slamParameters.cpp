@@ -170,17 +170,13 @@ void isae::SLAMParameters::createLandmarkInitializers() {
 
         if (config_line.lmk_triangulator == "Point3DLandmarkInitializer") {
             std::cout << "+ Adding Point3DLandmarkInitializer" << std::endl;
-            isae::Point3DLandmarkInitializer p3dInit(config_line.number_kept_features);
-            _lmk_init_map[config_line.label_feature] = std::make_shared<Point3DLandmarkInitializer>(p3dInit);
-
+            _lmk_init_map[config_line.label_feature] = std::make_shared<Point3DLandmarkInitializer>();
         } else if (config_line.lmk_triangulator == "Line3DLandmarkInitializer") {
             std::cout << "+ Adding Line3DLandmarkInitializer " << std::endl;
-            isae::Line3DLandmarkInitializer lineInit(config_line.number_kept_features);
-            _lmk_init_map[config_line.label_feature] = std::make_shared<Line3DLandmarkInitializer>(lineInit);
+            _lmk_init_map[config_line.label_feature] = std::make_shared<Line3DLandmarkInitializer>();
         } else if (config_line.lmk_triangulator == "semanticBBoxLandmarkInitializer") {
             std::cout << "+ Adding semanticBBoxLandmarkInitializer" << std::endl;
-            isae::semanticBBoxLandmarkInitializer bboxInit(config_line.number_kept_features);
-            _lmk_init_map[config_line.label_feature] = std::make_shared<semanticBBoxLandmarkInitializer>(bboxInit);
+            _lmk_init_map[config_line.label_feature] = std::make_shared<semanticBBoxLandmarkInitializer>();
         }
     }
 }

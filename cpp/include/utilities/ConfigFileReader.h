@@ -9,7 +9,6 @@ struct FeatureStruct {
     std::string label_feature;
     std::string detector_label;   // the capital letter should be respected
     int number_detected_features; // number of features to be detected by the detector
-    int number_kept_features;     // number of features to be kept in the SLAM estimation
     int n_features_per_cell;      // number of features per cell for bucketting
     std::string tracker_label;    // class name of the tracker we will use in our SLAM
     int tracker_height;           // searchAreaHeight of tracker

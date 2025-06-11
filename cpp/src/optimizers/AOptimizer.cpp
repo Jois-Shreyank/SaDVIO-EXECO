@@ -2,23 +2,6 @@
 
 namespace isae {
 
-bool AOptimizer::isMovingFrame(const std::shared_ptr<isae::Frame> &frame,
-                               const std::vector<std::shared_ptr<isae::Frame>> &frame_vector) {
-
-    for (auto &f : frame_vector)
-        if (f == frame)
-            return true;
-    return false;
-}
-
-bool AOptimizer::isMovingLandmark(const std::shared_ptr<isae::ALandmark> &ldmk,
-                                  const std::vector<std::shared_ptr<isae::ALandmark>> &cloud_to_optimize) {
-    for (auto &l : cloud_to_optimize)
-        if (l == ldmk)
-            return true;
-    return false;
-}
-
 uint AOptimizer::addIMUResiduals(ceres::Problem &problem,
                                  ceres::LossFunction *loss_function,
                                  ceres::ParameterBlockOrdering *ordering,

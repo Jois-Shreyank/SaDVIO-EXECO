@@ -13,31 +13,64 @@ class ImageSensor;
 class AFeature;
 class ALandmark;
 
+/*!
+* \brief Abstract class for initializing landmarks.
+*
+* This class provides methods to initialize landmarks from feature matches or to update existing landmarks
+* Each novel type of landmark must have its own derived class that implements the specific initialization logic.                             
+*/
 class ALandmarkInitializer : public std::enable_shared_from_this<ALandmarkInitializer> {
   public:
-    ALandmarkInitializer(uint nb_requiered_ldmk)
-        : _nb_requiered_ldmk(nb_requiered_ldmk) {}
+    ALandmarkInitializer() = default;
     ~ALandmarkInitializer() {}
-
-    typed_vec_landmarks getInitializedLandmarks() { return _initialized_landmarks; }
-
+    /*!
+     * \brief Initialize landmarks from a feature pair.
+     * \param match The feature pair to initialize the landmark from.
+     * \return The number of initialized landmarks.
+     */
     uint initFromMatch(feature_pair match);
+
+    /*!
+     * \brief Initialize landmarks from a vector of feature matches.
+     * \param matches The vector of feature matches to initialize the landmarks from.
+     * \return The number of initialized landmarks.
+     */
     uint initFromMatches(vec_match matches);
+
+    /*!
+     * \brief Initialize landmarks from a vector of feature tracks.
+     * \param tracks The vector of feature tracks to initialize the landmarks from.
+     * \return The number of initialized landmarks.
+     */
     uint initFromFeatures(std::vector<std::shared_ptr<AFeature>> feats);
-    uint getNbRequieredLdmk() { return _nb_requiered_ldmk; }
 
   protected:
+    /*!
+     * \brief Create a new landmark from a pair of features.
+     * \param f1 The first feature.
+     * \param f2 The second feature.
+     * \return A shared pointer to the newly created landmark.
+     */
     std::shared_ptr<ALandmark> createNewLandmark(std::shared_ptr<AFeature> f1, std::shared_ptr<AFeature> f2);
-    typed_vec_landmarks _initialized_landmarks;
 
-  private:
-    uint _nb_requiered_ldmk;
+    /*!
+     * \brief Initialize a landmark from a set of features.
+     * \param features A vector of features.
+     * \param landmark A shared pointer to the landmark to be initialized.
+     * \return True if the landmark was successfully initialized, false otherwise.
+     */
     virtual bool initLandmark(std::vector<std::shared_ptr<AFeature>> features,
                               std::shared_ptr<ALandmark> &landmark)          = 0;
+
+    /*!
+     * \brief Initialize a landmark from a set of features with depth information.
+     * \param features A vector of features.
+     * \param landmark A shared pointer to the landmark to be initialized.
+     * \return True if the landmark was successfully initialized with depth, false otherwise.
+     */
     virtual bool initLandmarkWithDepth(std::vector<std::shared_ptr<AFeature>> features,
                                        std::shared_ptr<ALandmark> &landmark) = 0;
 
-    // must link f or f1 & f2 to the landmark
     virtual std::shared_ptr<ALandmark> createNewLandmark(std::shared_ptr<AFeature> f) = 0;
 };
 
