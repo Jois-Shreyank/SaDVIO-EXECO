@@ -5,6 +5,7 @@
 
 namespace isae {
 
+/*! @brief An optimizer that uses Numeric Cost function for Bundle Adjustment */
 class BundleAdjustmentCERESNumeric : public AOptimizer {
   public:
     BundleAdjustmentCERESNumeric()  = default;
@@ -28,7 +29,7 @@ class BundleAdjustmentCERESNumeric : public AOptimizer {
                               typed_vec_landmarks &cloud_to_optimize) override;
 
   private:
-
+    /*! @brief Struct for reprojection error of a punctual landmark allowing numerical differentiation in CERES */
     struct ReprojectionErrCeres_pointxd {
 
         ReprojectionErrCeres_pointxd(const Eigen::Vector2d &p2d,
@@ -76,13 +77,9 @@ class BundleAdjustmentCERESNumeric : public AOptimizer {
         }
     };
 
-
-
-
-    // For dealing with linexd landmarks
+    /*! @brief Struct for reprojection error of a line landmark allowing numerical differentiation in CERES */
     struct ReprojectionErrCeres_linexd {
       public:
-
         ReprojectionErrCeres_linexd(const std::vector<Eigen::Vector2d> &p2ds,
                                     const std::shared_ptr<ImageSensor> &cam,
                                     const Eigen::Affine3d &T_w_lmk,
@@ -98,8 +95,6 @@ class BundleAdjustmentCERESNumeric : public AOptimizer {
         const Eigen::Affine3d _T_w_lmk;
         const std::shared_ptr<AModel3d> _model3d;
         Eigen::Matrix2d _info_sqrt;
-
-
 
         template <typename T> bool operator()(const T *const dX, const T *const dlmk, T *residual) const {
 
@@ -120,19 +115,18 @@ class BundleAdjustmentCERESNumeric : public AOptimizer {
             } else {
 
                 // distance between projections and detected line "extremal" points (4 d residual...)
-                // res << _info_sqrt * (projections.at(0) - _p2ds.at(0)), 
-                       //_info_sqrt * (projections.at(1) - _p2ds.at(1));
+                // res << _info_sqrt * (projections.at(0) - _p2ds.at(0)),
+                //_info_sqrt * (projections.at(1) - _p2ds.at(1));
 
                 // distance from projections to 2D line
-                v_dir << _p2ds.at(0)-_p2ds.at(1), 0.;
-                v_proj1 << _p2ds.at(0)-projections.at(0), 0.;
-                v_proj2 << _p2ds.at(0)-projections.at(1), 0.;
+                v_dir << _p2ds.at(0) - _p2ds.at(1), 0.;
+                v_proj1 << _p2ds.at(0) - projections.at(0), 0.;
+                v_proj2 << _p2ds.at(0) - projections.at(1), 0.;
 
-                res << _info_sqrt * Eigen::Vector2d((v_proj1.cross(v_dir)).norm()/v_dir.norm(), 
-                                                    (v_proj2.cross(v_dir)).norm()/v_dir.norm());
-
+                res << _info_sqrt * Eigen::Vector2d((v_proj1.cross(v_dir)).norm() / v_dir.norm(),
+                                                    (v_proj2.cross(v_dir)).norm() / v_dir.norm());
             }
-            
+
             return true;
         }
 
@@ -148,7 +142,6 @@ class BundleAdjustmentCERESNumeric : public AOptimizer {
             // residual (residual)
         }
     };
-
 };
 
 } // namespace isae

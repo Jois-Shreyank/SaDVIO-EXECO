@@ -178,15 +178,13 @@ void Marginalization::computeInformationAndGradient(std::vector<std::shared_ptr<
                         }
                     }
                 }
-                {
-                    b.segment(idx_i, size_i) += jacobian_i.transpose() * block->_residuals;
-                }
+                { b.segment(idx_i, size_i) += jacobian_i.transpose() * block->_residuals; }
             }
         }
     };
 
     // Split the blocks in chunks
-    int n_thread = 4;
+    int n_thread = 1;
     std::vector<std::vector<std::shared_ptr<MarginalizationBlockInfo>>> thread_chunks;
     for (int i = 0; i < n_thread; i++) {
         std::vector<std::shared_ptr<MarginalizationBlockInfo>> block_vector;
@@ -539,21 +537,29 @@ void Marginalization::preMarginalizeRelative(std::shared_ptr<Frame> &frame0, std
         // For all type of landmark
         for (auto lmk : tlmks.second) {
 
-            if (lmk->isOutlier() || !lmk->isInMap() || !lmk->isInitialized())
+            if (lmk->isOutlier() || !lmk->isInMap() || !lmk->isInitialized() || lmk->isResurected())
                 continue;
+            int num_cam          = 0;
+            bool is_linked_to_f1 = false;
             for (auto f : lmk->getFeatures()) {
 
-                // If the landmark is linked to frame1 it is marginalized
-                if (f.lock()->getSensor()->getFrame() == frame1) {
-
-                    _lmk_to_marg[tlmks.first].push_back(lmk);
-                    (tlmks.first == "pointxd" ? _m += 3 : _m += 6);
-                    _map_lmk_idx.emplace(lmk, last_idx);
-                    (tlmks.first == "pointxd" ? last_idx += 3 : last_idx += 6);
-
-                } else {
+                if (f.lock()->isOutlier())
                     continue;
-                }
+
+                if (f.lock()->getSensor()->getFrame() == frame1)
+                    is_linked_to_f1 = true;
+                
+
+                if (f.lock()->getSensor()->getFrame() == frame0)
+                    num_cam++;
+            }
+
+            // If the landmark is linked to frame1 and stereo triangulated it is marginalized
+            if (is_linked_to_f1 && (num_cam == 2)) {
+                _lmk_to_marg[tlmks.first].push_back(lmk);
+                (tlmks.first == "pointxd" ? _m += 3 : _m += 6);
+                _map_lmk_idx.emplace(lmk, last_idx);
+                (tlmks.first == "pointxd" ? last_idx += 3 : last_idx += 6);
             }
         }
     }
@@ -562,7 +568,7 @@ void Marginalization::preMarginalizeRelative(std::shared_ptr<Frame> &frame0, std
     _map_frame_idx.emplace(frame0, last_idx);
     last_idx += 6;
     _n += 6;
-    if (frame0->getIMU()) {
+    if (frame0->getIMU() && frame1->getIMU()) {
         _n += 9;
         last_idx += 9;
     }
@@ -570,7 +576,7 @@ void Marginalization::preMarginalizeRelative(std::shared_ptr<Frame> &frame0, std
     _map_frame_idx.emplace(frame1, last_idx);
     last_idx += 6;
     _n += 6;
-    if (frame1->getIMU()) {
+    if (frame1->getIMU() && frame1->getIMU()) {
         _n += 9;
         last_idx += 9;
     }

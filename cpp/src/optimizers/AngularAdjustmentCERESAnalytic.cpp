@@ -546,7 +546,7 @@ bool AngularAdjustmentCERESAnalytic::marginalize(std::shared_ptr<Frame> &frame0,
 
         // Add the pre integration factor in the marginalization scheme
         ceres::CostFunction *cost_fct = new IMUFactor(frame0->getIMU(), frame1->getIMU());
-        _marginalization->addMarginalizationBlock(
+        _marginalization->_marginalization_blocks.push_back(
             std::make_shared<MarginalizationBlockInfo>(cost_fct, parameter_idx, parameter_blocks));
 
         // Parameters of marginalization blocks
@@ -565,7 +565,7 @@ bool AngularAdjustmentCERESAnalytic::marginalize(std::shared_ptr<Frame> &frame0,
 
         // Add the bias random walk factor in the marginalization scheme
         ceres::CostFunction *cost_fct_b = new IMUBiasFactor(frame0->getIMU(), frame1->getIMU());
-        _marginalization->addMarginalizationBlock(
+        _marginalization->_marginalization_blocks.push_back(
             std::make_shared<MarginalizationBlockInfo>(cost_fct_b, parameter_idx_b, parameter_blocks_b));
     }
 
@@ -596,7 +596,7 @@ bool AngularAdjustmentCERESAnalytic::marginalize(std::shared_ptr<Frame> &frame0,
                                                        frame0->getWorld2FrameTransform(),
                                                        lmk->getPose().translation(),
                                                        (1 / feature.lock()->getSensor()->getFocal()));
-                    _marginalization->addMarginalizationBlock(
+                    _marginalization->_marginalization_blocks.push_back(
                         std::make_shared<MarginalizationBlockInfo>(cost_fct, parameter_idx, parameter_blocks));
                 }
             }
@@ -630,7 +630,7 @@ bool AngularAdjustmentCERESAnalytic::marginalize(std::shared_ptr<Frame> &frame0,
                                                        frame0->getWorld2FrameTransform(),
                                                        lmk->getPose().translation(),
                                                        (1 / feature.lock()->getSensor()->getFocal()));
-                    _marginalization->addMarginalizationBlock(
+                    _marginalization->_marginalization_blocks.push_back(
                         std::make_shared<MarginalizationBlockInfo>(cost_fct, parameter_idx, parameter_blocks));
                 }
             }
@@ -668,7 +668,7 @@ bool AngularAdjustmentCERESAnalytic::marginalize(std::shared_ptr<Frame> &frame0,
         }
         // Add the last prior in the marginalization scheme
         ceres::CostFunction *cost_fct = new MarginalizationFactor(_marginalization_last);
-        _marginalization->addMarginalizationBlock(
+        _marginalization->_marginalization_blocks.push_back(
             std::make_shared<MarginalizationBlockInfo>(cost_fct, parameter_idx, parameter_blocks));
     }
 
@@ -682,7 +682,7 @@ bool AngularAdjustmentCERESAnalytic::marginalize(std::shared_ptr<Frame> &frame0,
 
         ceres::CostFunction *cost_fct =
             new PosePriordx(frame0->getWorld2FrameTransform(), frame0->getPrior(), frame0->getInfPrior().asDiagonal());
-        _marginalization->addMarginalizationBlock(
+        _marginalization->_marginalization_blocks.push_back(
             std::make_shared<MarginalizationBlockInfo>(cost_fct, parameter_idx, parameter_blocks));
     }
 
@@ -695,7 +695,7 @@ bool AngularAdjustmentCERESAnalytic::marginalize(std::shared_ptr<Frame> &frame0,
 
         ceres::CostFunction *cost_fct =
             new PosePriordx(frame1->getWorld2FrameTransform(), frame1->getPrior(), frame1->getInfPrior().asDiagonal());
-        _marginalization->addMarginalizationBlock(
+        _marginalization->_marginalization_blocks.push_back(
             std::make_shared<MarginalizationBlockInfo>(cost_fct, parameter_idx, parameter_blocks));
     }
 
@@ -914,7 +914,7 @@ bool AngularAdjustmentCERESAnalytic::landmarkOptimizationNoFov(std::shared_ptr<F
 }
 
 Eigen::MatrixXd AngularAdjustmentCERESAnalytic::marginalizeRelative(std::shared_ptr<Frame> &frame0,
-                                                         std::shared_ptr<Frame> &frame1) {
+                                                                    std::shared_ptr<Frame> &frame1) {
 
     // Setup the maps for memory gestion
     _map_lmk_ptpar.clear();
@@ -922,6 +922,7 @@ Eigen::MatrixXd AngularAdjustmentCERESAnalytic::marginalizeRelative(std::shared_
     _map_frame_velpar.clear();
     _map_frame_dbapar.clear();
     _map_frame_dbgpar.clear();
+    resetMarginalization();
 
     std::cout << "Marginalizing relative frames  " << std::endl;
 
@@ -954,20 +955,20 @@ Eigen::MatrixXd AngularAdjustmentCERESAnalytic::marginalizeRelative(std::shared_
         parameter_blocks.push_back(_map_frame_posepar.at(frame1).values());
 
         // For the velocities
-        parameter_idx.push_back(_marginalization->_n);
+        parameter_idx.push_back(_marginalization->_map_frame_idx.at(frame0) + 6);
         parameter_blocks.push_back(_map_frame_velpar.at(frame0).values());
-        parameter_idx.push_back(_marginalization->_n + 3);
+        parameter_idx.push_back(_marginalization->_map_frame_idx.at(frame1) + 6);
         parameter_blocks.push_back(_map_frame_velpar.at(frame1).values());
 
         // For the biases
-        parameter_idx.push_back(_marginalization->_n + 6);
+        parameter_idx.push_back(_marginalization->_map_frame_idx.at(frame0) + 9);
         parameter_blocks.push_back(_map_frame_dbapar.at(frame0).values());
-        parameter_idx.push_back(_marginalization->_n + 9);
+        parameter_idx.push_back(_marginalization->_map_frame_idx.at(frame0) + 12);
         parameter_blocks.push_back(_map_frame_dbgpar.at(frame0).values());
 
         // Add the pre integration factor in the marginalization scheme
         ceres::CostFunction *cost_fct = new IMUFactor(frame0->getIMU(), frame1->getIMU());
-        _marginalization->addMarginalizationBlock(
+        _marginalization->_marginalization_blocks.push_back(
             std::make_shared<MarginalizationBlockInfo>(cost_fct, parameter_idx, parameter_blocks));
 
         // Parameters of marginalization blocks
@@ -975,24 +976,24 @@ Eigen::MatrixXd AngularAdjustmentCERESAnalytic::marginalizeRelative(std::shared_
         std::vector<int> parameter_idx_b;
 
         // For the biases
-        parameter_idx_b.push_back(_marginalization->_n + 6);
+        parameter_idx_b.push_back(_marginalization->_map_frame_idx.at(frame0) + 9);
         parameter_blocks_b.push_back(_map_frame_dbapar.at(frame0).values());
-        parameter_idx_b.push_back(_marginalization->_n + 9);
+        parameter_idx_b.push_back(_marginalization->_map_frame_idx.at(frame0) + 12);
         parameter_blocks_b.push_back(_map_frame_dbgpar.at(frame0).values());
-        parameter_idx_b.push_back(_marginalization->_n + 12);
+        parameter_idx_b.push_back(_marginalization->_map_frame_idx.at(frame1) + 9);
         parameter_blocks_b.push_back(_map_frame_dbapar.at(frame1).values());
-        parameter_idx_b.push_back(_marginalization->_n + 15);
+        parameter_idx_b.push_back(_marginalization->_map_frame_idx.at(frame1) + 12);
         parameter_blocks_b.push_back(_map_frame_dbgpar.at(frame1).values());
 
         // Add the bias random walk factor in the marginalization scheme
         ceres::CostFunction *cost_fct_b = new IMUBiasFactor(frame0->getIMU(), frame1->getIMU());
-        _marginalization->addMarginalizationBlock(
+        _marginalization->_marginalization_blocks.push_back(
             std::make_shared<MarginalizationBlockInfo>(cost_fct_b, parameter_idx_b, parameter_blocks_b));
     }
 
     if (_marginalization->_lmk_to_marg["pointxd"].size() < 2) {
         std::cout << "Not enough landmarks to marginalize, returning zero matrix." << std::endl;
-        return Eigen::MatrixXd::Zero(6, 6);
+        return Eigen::MatrixXd::Identity(6, 6);
     }
 
     std::cout << "Computing visual factors for marginalization." << std::endl;
@@ -1025,19 +1026,18 @@ Eigen::MatrixXd AngularAdjustmentCERESAnalytic::marginalizeRelative(std::shared_
                                                        frame->getWorld2FrameTransform(),
                                                        lmk->getPose().translation(),
                                                        (1 / feature.lock()->getSensor()->getFocal()));
-                    _marginalization->addMarginalizationBlock(
+                    _marginalization->_marginalization_blocks.push_back(
                         std::make_shared<MarginalizationBlockInfo>(cost_fct, parameter_idx, parameter_blocks));
                 }
             }
         }
     }
+    std::cout << "Done" << std::endl;
+    std::cout << "_m : " << _marginalization->_m << " _n : " << _marginalization->_n << std::endl;
 
     // Reset the marginalization scheme if it failed
     if (!_marginalization->computeSchurComplement()) {
-        _marginalization->_lmk_to_keep.clear();
-        _marginalization->_marginalization_blocks.clear();
-        _marginalization_last->_lmk_to_keep.clear();
-        return Eigen::MatrixXd::Zero(6,6);
+        return Eigen::MatrixXd::Identity(6, 6);
     }
 
     // Compute the relative pose factor with NFR
@@ -1058,10 +1058,20 @@ Eigen::MatrixXd AngularAdjustmentCERESAnalytic::marginalizeRelative(std::shared_
 
     // Compute the covariance of the non linear factor
     block_relpose.Evaluate();
-    Eigen::MatrixXd J   = Eigen::MatrixXd::Zero(6, 12);
-    J.block(0, 0, 6, 6) = block_relpose._jacobians.at(0);
-    J.block(0, 6, 6, 6) = block_relpose._jacobians.at(1);
-    Eigen::MatrixXd cov = J * _marginalization->_Sigma_k * J.transpose();
+    Eigen::MatrixXd cov = Eigen::MatrixXd::Identity(6, 6);
+    if (_marginalization->_n == 30) {
+        Eigen::MatrixXd J    = Eigen::MatrixXd::Zero(6, 30);
+        J.block(0, 0, 6, 6)  = block_relpose._jacobians.at(0);
+        J.block(0, 15, 6, 6) = block_relpose._jacobians.at(1);
+        cov                  = J * _marginalization->_Sigma_k * J.transpose();
+    } else if (_marginalization->_n == 12) {
+        Eigen::MatrixXd J    = Eigen::MatrixXd::Zero(6, 12);
+        J.block(0, 0, 6, 6)  = block_relpose._jacobians.at(0);
+        J.block(0, 6, 6, 6) = block_relpose._jacobians.at(1);
+        cov                  = J * _marginalization->_Sigma_k * J.transpose();
+    } else {
+        std::cout << _marginalization->_n << std::endl;
+    }
 
     if (cov.hasNaN()) {
         std::cout << "Covariance is not valid, returning zero matrix." << std::endl;

@@ -1,11 +1,11 @@
+#include "isaeslam/data/features/Point2D.h"
 #include "isaeslam/data/frame.h"
 #include "isaeslam/data/sensors/Camera.h"
+#include "isaeslam/estimator/ESKFEstimator.h"
+#include "isaeslam/landmarkinitializer/Point3DlandmarkInitializer.h"
 #include "isaeslam/optimizers/AngularAdjustmentCERESAnalytic.h"
 #include "isaeslam/optimizers/BundleAdjustmentCERESAnalytic.h"
-#include "isaeslam/landmarkinitializer/Point3DlandmarkInitializer.h"
 #include "isaeslam/optimizers/residuals.hpp"
-#include "isaeslam/estimator/ESKFEstimator.h"
-#include "isaeslam/data/features/Point2D.h"
 #include <gtest/gtest.h>
 
 namespace isae {
@@ -78,7 +78,6 @@ class ResidualTest : public testing::Test {
         _lmk->init(_rand_lmk, features);
         _frame0->addLandmark(_lmk);
         _frame1->addLandmark(_lmk);
-
     }
 
     std::shared_ptr<Frame> _frame0, _frame1;
@@ -124,8 +123,7 @@ TEST_F(ResidualTest, PriorResidual) {
 TEST_F(ResidualTest, reprojTest) {
 
     // Create a Cost function
-    ceres::CostFunction *cost_fct =
-        new BundleAdjustmentCERESAnalytic::ReprojectionErrCeres_pointxd_dx(_p2d0, _sensor0, _rand_lmk, 1);
+    ceres::CostFunction *cost_fct = new ReprojectionErrCeres_pointxd_dx(_p2d0, _sensor0, _rand_lmk, 1);
 
     // Set variables
     // ceres::Manifold *nullptr = new SE3RightParameterization();
@@ -162,14 +160,13 @@ TEST_F(ResidualTest, angularTest) {
     Eigen::Vector3d b1 = _sensor1->getRayCamera(_p2d1);
 
     // Create a Cost function
-    ceres::CostFunction *cost_fct =
-        new AngularAdjustmentCERESAnalytic::AngularErrCeres_pointxd_depth(b1,
-                                                                          b0,
-                                                                          Eigen::Affine3d::Identity(),
-                                                                          _frame0->getWorld2FrameTransform(),
-                                                                          _frame1->getWorld2FrameTransform(),
-                                                                          depth,
-                                                                          1);
+    ceres::CostFunction *cost_fct = new AngularErrCeres_pointxd_depth(b1,
+                                                                      b0,
+                                                                      Eigen::Affine3d::Identity(),
+                                                                      _frame0->getWorld2FrameTransform(),
+                                                                      _frame1->getWorld2FrameTransform(),
+                                                                      depth,
+                                                                      1);
 
     // Set variables
     PoseParametersBlock dX(Eigen::Affine3d::Identity());
@@ -204,8 +201,8 @@ TEST_F(ResidualTest, scaleTest) {
     Eigen::Affine3d T_c0_c0 = Eigen::Affine3d::Identity();
 
     // Create a Cost function
-    ceres::CostFunction *cost_fct = new AngularAdjustmentCERESAnalytic::AngularErrorScaleCam0(
-        b1, _rand_lmk.translation(), _sensor0->getWorld2SensorTransform(), _dT, T_c0_c0, 1);
+    ceres::CostFunction *cost_fct =
+        new AngularErrorScaleCam0(b1, _rand_lmk.translation(), _sensor0->getWorld2SensorTransform(), _dT, T_c0_c0, 1);
 
     // Set variables
     double lambda[1] = {1.0};
@@ -237,8 +234,7 @@ TEST_F(ResidualTest, scaleTest) {
     // Check if the bearing vector * depth gives the actual landmark pose
     ASSERT_NEAR((t_s_lmk - b0 * depth).norm(), 0, 1e-5);
 
-    ceres::CostFunction *cost_fct1 =
-        new AngularAdjustmentCERESAnalytic::AngularErrorScaleDepth(b1, b0, _dT, T_c0_c0, depth, 1);
+    ceres::CostFunction *cost_fct1 = new AngularErrorScaleDepth(b1, b0, _dT, T_c0_c0, depth, 1);
 
     // Set variables
     double ddepth[1] = {0.0};
@@ -302,7 +298,7 @@ TEST_F(ResidualTest, PoseToLandmarkResidual) {
 TEST_F(ResidualTest, RelativePose6DResidual) {
 
     // Generate random poses
-    Eigen::Affine3d T_w_f0           = Eigen::Affine3d::Identity();
+    Eigen::Affine3d T_w_f0            = Eigen::Affine3d::Identity();
     Eigen::Quaterniond q_rand         = Eigen::Quaterniond::UnitRandom();
     Eigen::Vector3d t_rand            = Eigen::Vector3d::Random();
     T_w_f0.affine().block(0, 0, 3, 3) = q_rand.toRotationMatrix();
@@ -315,7 +311,7 @@ TEST_F(ResidualTest, RelativePose6DResidual) {
     T_w_f1.translation()              = t1_rand;
 
     // Create a Cost function
-    Eigen::Affine3d T_f0_f1 = T_w_f0.inverse() * T_w_f1;
+    Eigen::Affine3d T_f0_f1       = T_w_f0.inverse() * T_w_f1;
     ceres::CostFunction *cost_fct = new Relative6DPose(T_w_f0, T_w_f1, T_f0_f1, Vector6d::Ones().asDiagonal());
 
     // Set variables
@@ -343,8 +339,8 @@ TEST_F(ResidualTest, RelativePose6DResidual) {
 TEST_F(ResidualTest, ESKFLmkTest) {
     ESKFEstimator estimator;
 
-    Eigen::Vector3d t_lmk = _lmk->getPose().translation();
-    Eigen::Vector3d t_lmk_noise = _lmk->getPose().translation() + 0.1 * Eigen::Vector3d::Random();  
+    Eigen::Vector3d t_lmk       = _lmk->getPose().translation();
+    Eigen::Vector3d t_lmk_noise = _lmk->getPose().translation() + 0.1 * Eigen::Vector3d::Random();
     _lmk->setPosition(t_lmk_noise);
     estimator.refineTriangulation(_frame1);
     ASSERT_NEAR((_lmk->getPose().translation() - t_lmk).norm(), 0, 0.02);

@@ -481,7 +481,7 @@ bool BundleAdjustmentCERESAnalytic::marginalize(std::shared_ptr<Frame> &frame0,
 
         // Add the pre integration factor in the marginalization scheme
         ceres::CostFunction *cost_fct = new IMUFactor(frame0->getIMU(), frame1->getIMU());
-        _marginalization->addMarginalizationBlock(
+        _marginalization->_marginalization_blocks.push_back(
             std::make_shared<MarginalizationBlockInfo>(cost_fct, parameter_idx, parameter_blocks));
 
         // Parameters of marginalization blocks
@@ -500,7 +500,7 @@ bool BundleAdjustmentCERESAnalytic::marginalize(std::shared_ptr<Frame> &frame0,
 
         // Add the bias random walk factor in the marginalization scheme
         ceres::CostFunction *cost_fct_b = new IMUBiasFactor(frame0->getIMU(), frame1->getIMU());
-        _marginalization->addMarginalizationBlock(
+        _marginalization->_marginalization_blocks.push_back(
             std::make_shared<MarginalizationBlockInfo>(cost_fct_b, parameter_idx_b, parameter_blocks_b));
     }
 
@@ -528,7 +528,7 @@ bool BundleAdjustmentCERESAnalytic::marginalize(std::shared_ptr<Frame> &frame0,
                     ceres::CostFunction *cost_fct = new ReprojectionErrCeres_pointxd_dx(
                         feature.lock()->getPoints().at(0), feature.lock()->getSensor(), lmk->getPose());
 
-                    _marginalization->addMarginalizationBlock(
+                    _marginalization->_marginalization_blocks.push_back(
                         std::make_shared<MarginalizationBlockInfo>(cost_fct, parameter_idx, parameter_blocks));
                 }
             }
@@ -559,7 +559,7 @@ bool BundleAdjustmentCERESAnalytic::marginalize(std::shared_ptr<Frame> &frame0,
                     ceres::CostFunction *cost_fct = new ReprojectionErrCeres_pointxd_dx(
                         feature.lock()->getPoints().at(0), feature.lock()->getSensor(), lmk->getPose());
 
-                    _marginalization->addMarginalizationBlock(
+                    _marginalization->_marginalization_blocks.push_back(
                         std::make_shared<MarginalizationBlockInfo>(cost_fct, parameter_idx, parameter_blocks));
                 }
             }
@@ -597,7 +597,7 @@ bool BundleAdjustmentCERESAnalytic::marginalize(std::shared_ptr<Frame> &frame0,
         }
         // Add the last prior in the marginalization scheme
         ceres::CostFunction *cost_fct = new MarginalizationFactor(_marginalization_last);
-        _marginalization->addMarginalizationBlock(
+        _marginalization->_marginalization_blocks.push_back(
             std::make_shared<MarginalizationBlockInfo>(cost_fct, parameter_idx, parameter_blocks));
     }
 
@@ -611,7 +611,7 @@ bool BundleAdjustmentCERESAnalytic::marginalize(std::shared_ptr<Frame> &frame0,
 
         ceres::CostFunction *cost_fct =
             new PosePriordx(frame0->getWorld2FrameTransform(), frame0->getPrior(), frame0->getInfPrior().asDiagonal());
-        _marginalization->addMarginalizationBlock(
+        _marginalization->_marginalization_blocks.push_back(
             std::make_shared<MarginalizationBlockInfo>(cost_fct, parameter_idx, parameter_blocks));
     }
 
@@ -713,7 +713,7 @@ Eigen::MatrixXd BundleAdjustmentCERESAnalytic::marginalizeRelative(std::shared_p
 
         // Add the pre integration factor in the marginalization scheme
         ceres::CostFunction *cost_fct = new IMUFactor(frame0->getIMU(), frame1->getIMU());
-        _marginalization->addMarginalizationBlock(
+        _marginalization->_marginalization_blocks.push_back(
             std::make_shared<MarginalizationBlockInfo>(cost_fct, parameter_idx, parameter_blocks));
 
         // Parameters of marginalization blocks
@@ -732,7 +732,7 @@ Eigen::MatrixXd BundleAdjustmentCERESAnalytic::marginalizeRelative(std::shared_p
 
         // Add the bias random walk factor in the marginalization scheme
         ceres::CostFunction *cost_fct_b = new IMUBiasFactor(frame0->getIMU(), frame1->getIMU());
-        _marginalization->addMarginalizationBlock(
+        _marginalization->_marginalization_blocks.push_back(
             std::make_shared<MarginalizationBlockInfo>(cost_fct_b, parameter_idx_b, parameter_blocks_b));
     }
 
@@ -760,7 +760,7 @@ Eigen::MatrixXd BundleAdjustmentCERESAnalytic::marginalizeRelative(std::shared_p
                     // Add the angular factor in the marginalization scheme
                     ceres::CostFunction *cost_fct = new ReprojectionErrCeres_pointxd_dx(
                         feature.lock()->getPoints().at(0), feature.lock()->getSensor(), lmk->getPose());
-                    _marginalization->addMarginalizationBlock(
+                    _marginalization->_marginalization_blocks.push_back(
                         std::make_shared<MarginalizationBlockInfo>(cost_fct, parameter_idx, parameter_blocks));
                 }
             }

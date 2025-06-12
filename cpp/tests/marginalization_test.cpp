@@ -257,9 +257,9 @@ TEST_F(MarginalizationTest, margTest) {
 
                     // Add the reprojection factor in the marginalization scheme
                     std::cout << feature.lock()->getPoints().size() << std::endl;
-                    ceres::CostFunction *cost_fct = new BundleAdjustmentCERESAnalytic::ReprojectionErrCeres_pointxd_dx(
+                    ceres::CostFunction *cost_fct = new ReprojectionErrCeres_pointxd_dx(
                         feature.lock()->getPoints().at(0), feature.lock()->getSensor(), lmk->getPose());
-                    _marg.addMarginalizationBlock(
+                    _marg._marginalization_blocks.push_back(
                         std::make_shared<MarginalizationBlockInfo>(cost_fct, parameter_idx, parameter_blocks));
                 }
             }
@@ -287,9 +287,9 @@ TEST_F(MarginalizationTest, margTest) {
                     parameter_blocks.push_back(_map_lmk_ptpar.at(lmk).values());
 
                     // Add the reprojection factor in the marginalization scheme
-                    ceres::CostFunction *cost_fct = new BundleAdjustmentCERESAnalytic::ReprojectionErrCeres_pointxd_dx(
+                    ceres::CostFunction *cost_fct = new ReprojectionErrCeres_pointxd_dx(
                         feature.lock()->getPoints().at(0), feature.lock()->getSensor(), lmk->getPose());
-                    _marg.addMarginalizationBlock(
+                    _marg._marginalization_blocks.push_back(
                         std::make_shared<MarginalizationBlockInfo>(cost_fct, parameter_idx, parameter_blocks));
                 }
             }

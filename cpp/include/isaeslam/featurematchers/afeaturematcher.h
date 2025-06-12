@@ -10,15 +10,11 @@
 
 namespace isae {
 
-/*!
- * @brief Unordered map to store matches between two feature lists
- */
-using vec_feat_matches = std::unordered_map<std::shared_ptr<AFeature>, std::vector<std::shared_ptr<AFeature>>>;
+/*! @brief Unordered map to store matches between two feature lists */
+typedef std::unordered_map<std::shared_ptr<AFeature>, std::vector<std::shared_ptr<AFeature>>> vec_feat_matches;
 
-/*!
- * @brief Unordered map to store scores of matches between two feature lists
- */
-using vec_feat_matches_scores = std::unordered_map<std::shared_ptr<AFeature>, std::vector<double>>;
+/*! @brief Unordered map to store scores of matches between two feature lists */
+typedef std::unordered_map<std::shared_ptr<AFeature>, std::vector<double>> vec_feat_matches_scores;
 
 /*!
  * @brief Class for matching features between two sets of features.
