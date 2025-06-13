@@ -14,8 +14,8 @@
 #include "isaeslam/data/mesh/mesher.h"
 #include "isaeslam/data/sensors/ASensor.h"
 #include "isaeslam/data/sensors/DoubleSphere.h"
-#include "isaeslam/estimator/EpipolarPoseEstimator.h"
 #include "isaeslam/estimator/ESKFEstimator.h"
+#include "isaeslam/estimator/EpipolarPoseEstimator.h"
 #include "isaeslam/featuredetectors/opencv_detectors/cvORBFeatureDetector.h"
 #include "isaeslam/featurematchers/Point2DFeatureMatcher.h"
 #include "isaeslam/featurematchers/Point2DFeatureTracker.h"
@@ -27,30 +27,54 @@
 
 namespace isae {
 
+/*!
+ * @brief The core abstract class of the SLAM system. It handles front-end, back-end and initialization.
+ *
+ * This is the skeleton of the SLAM system that will call all the subsystems (sensor processing, optimizer, map
+ * processing...) It loads all the parameters of the SLAM and implements frontEnd and backEnds that must be called in a
+ * separated thread. A few important methods relative to feature processing and pose estimation are implemented as well
+ * to make the frontEndStep() and backEndStep() methods readable. Also, a few profiling variables and methods are
+ * implemented to monitor the performances.
+ */
 class SLAMCore {
   public:
     SLAMCore(){};
     SLAMCore(std::shared_ptr<isae::SLAMParameters> slam_param);
 
-    // Initialization step : create the first 3D landmarks and keyframe(s)
+    /*!
+     * @brief Initialization step : create the first 3D landmarks and keyframe(s)
+     */
     virtual bool init() = 0;
 
-    // Front End: detection, tracking, pose estimation and landmark triangulation
+    /*!
+     * @brief Front End: detection, tracking, pose estimation and landmark triangulation
+     */
     virtual bool frontEndStep() = 0;
 
-    // Back End: marginalization, local map optimization
+    /*!
+     * @brief brief description Back End: marginalization, local map optimization
+     */
     virtual bool backEndStep() = 0;
 
-    // Threads front and back
+    /*!
+     * @brief Thread for the backend
+     */
     void runBackEnd();
+
+    /*!
+     * @brief Thread for the frontend
+     */
     void runFrontEnd();
+
+    /*!
+     * @brief Thread for the backend
+     */
     void runFullOdom();
 
-    // Flag for init and number of successive failures for diagnostic
-    bool _is_init = false;
-    int _successive_fails = 0;
+    bool _is_init         = false; //>! Flag for initialization
+    int _successive_fails = 0;     //>! Number of successive failure to trigger reinitialization
 
-    // Public variables for display 
+    // Public variables for display
     std::shared_ptr<isae::SLAMParameters> _slam_param;
     std::shared_ptr<Frame> _frame_to_display;
     std::shared_ptr<isae::LocalMap> _local_map_to_display;
