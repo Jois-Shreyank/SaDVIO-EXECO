@@ -1,5 +1,5 @@
-#include "sensorSubscriber.h"
 #include "rosVisualizer.h"
+#include "sensorSubscriber.h"
 
 #include "isaeslam/slamCore.h"
 
@@ -10,8 +10,8 @@ int main(int argc, char **argv) {
     rclcpp::init(argc, argv);
 
     // Create the SLAM parameter object
-    std::shared_ptr<isae::SLAMParameters> slam_param =
-        std::make_shared<isae::SLAMParameters>(ament_index_cpp::get_package_share_directory("isae_slam_ros") + "/config");
+    std::shared_ptr<isae::SLAMParameters> slam_param = std::make_shared<isae::SLAMParameters>(
+        ament_index_cpp::get_package_share_directory("isae_slam_ros") + "/config");
 
     // Create the ROS Visualizer
     std::shared_ptr<RosVisualizer> prosviz;
@@ -51,8 +51,10 @@ int main(int argc, char **argv) {
     }
 
     // Start the vizu thread
-    std::thread vizu_thread(&RosVisualizer::runVisualizer, prosviz, SLAM);
-    vizu_thread.detach();
+    if (slam_param->_config.enable_visu) {
+        std::thread vizu_thread(&RosVisualizer::runVisualizer, prosviz, SLAM);
+        vizu_thread.detach();
+    }
 
     // Start the sensor subscriber
     std::shared_ptr<SensorSubscriber> sensor_subscriber =

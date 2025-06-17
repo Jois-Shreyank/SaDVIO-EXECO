@@ -17,7 +17,7 @@ class Frame;
 class AFeature;
 
 /*!
-* Basic characteristics of a sensor
+* @brief Abstract struct of a sensor
 */
 struct sensor_config {
     std::string sensor_type;

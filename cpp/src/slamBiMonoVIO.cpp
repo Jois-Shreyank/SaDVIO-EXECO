@@ -378,6 +378,24 @@ bool SLAMBiMonoVIO::frontEndStep() {
 
     if (good_it) {
         _successive_fails = 0;
+        // Update tracked landmarks
+        updateLandmarks(_matches_in_time_lmk);
+
+        // Single Frame ESKF Update
+        isae::timer::tic();
+
+        Eigen::MatrixXd cov = Eigen::MatrixXd::Identity(6, 6);
+        Eigen::Affine3d T_last_curr, T_w_f;
+        T_last_curr = getLastKF()->getWorld2FrameTransform() * _frame->getFrame2WorldTransform();
+        ESKFEstimator eskf;
+        eskf.estimateTransformBetween(getLastKF(), _frame, _matches_in_time_lmk["pointxd"], T_last_curr, cov);
+        T_w_f = getLastKF()->getFrame2WorldTransform() * T_last_curr;
+        _frame->setdTCov(cov);
+        _frame->setWorld2FrameTransform(T_w_f.inverse());
+
+        float optim_dt   = isae::timer::silentToc();
+        _avg_frame_opt_t = (_avg_frame_opt_t * (_nframes - 1) + optim_dt) / _nframes;
+        _lmk_inmap       = (_lmk_inmap * (_nframes - 1) + _frame->getLandmarks()["pointxd"].size()) / _nframes;
 
         // Epipolar Filtering for matches in time
         isae::timer::tic();
@@ -397,24 +415,6 @@ bool SLAMBiMonoVIO::frontEndStep() {
             _avg_clean_t     = (_avg_clean_t * (_nframes - 1) + dt_filter) / _nframes;
         }
 
-        // Update tracked landmarks
-        updateLandmarks(_matches_in_time_lmk);
-
-        // Single Frame ESKF Update
-        isae::timer::tic();
-
-        Eigen::MatrixXd cov = Eigen::MatrixXd::Identity(6, 6);
-        Eigen::Affine3d T_last_curr, T_w_f;
-        T_last_curr = getLastKF()->getWorld2FrameTransform() * _frame->getFrame2WorldTransform();
-        ESKFEstimator eskf;
-        eskf.estimateTransformBetween(getLastKF(), _frame, _matches_in_time_lmk["pointxd"], T_last_curr, cov);
-        T_w_f = getLastKF()->getFrame2WorldTransform() * T_last_curr;
-        _frame->setdTCov(cov);
-        _frame->setWorld2FrameTransform(T_w_f.inverse());
-
-        float optim_dt   = isae::timer::silentToc();
-        _avg_frame_opt_t = (_avg_frame_opt_t * (_nframes - 1) + optim_dt) / _nframes;
-        _lmk_inmap       = (_lmk_inmap * (_nframes - 1) + _frame->getLandmarks()["pointxd"].size()) / _nframes;
 
         // Compute velocity and motion model
         _6d_velocity =

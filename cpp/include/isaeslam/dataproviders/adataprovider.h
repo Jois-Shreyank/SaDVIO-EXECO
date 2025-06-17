@@ -9,13 +9,12 @@
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core.hpp>
 #include <opencv2/core/eigen.hpp>
-#include <yaml-cpp/yaml.h>
 
 #include "isaeslam/data/sensors/Camera.h"
 #include "isaeslam/data/sensors/DoubleSphere.h"
 #include "isaeslam/data/sensors/Fisheye.h"
 #include "isaeslam/data/sensors/IMU.h"
-#include "utilities/ConfigFileReader.h"
+#include "isaeslam/slamParameters.h"
 
 namespace isae {
 

@@ -22,6 +22,7 @@
 #include "isaeslam/landmarkinitializer/Point3DlandmarkInitializer.h"
 #include "isaeslam/optimizers/AngularAdjustmentCERESAnalytic.h"
 #include "isaeslam/slamParameters.h"
+#include "isaeslam/dataproviders/adataprovider.h"
 #include "isaeslam/typedefs.h"
 #include "utilities/timer.h"
 
