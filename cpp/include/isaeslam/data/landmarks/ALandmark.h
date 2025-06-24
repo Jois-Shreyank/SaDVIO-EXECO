@@ -145,23 +145,23 @@ class ALandmark : public std::enable_shared_from_this<ALandmark> {
         _is_marg = true;
     }
 
-    static int _landmark_count; //!> Static counter for landmarks, used for unique id generation
-    int _id;                    //!> Unique id for the landmark, used for bookeeping
-    std::string _label;         //!> Label for the landmark
+    static int _landmark_count; //!< Static counter for landmarks, used for unique id generation
+    int _id;                    //!< Unique id for the landmark, used for bookeeping
+    std::string _label;         //!< Label for the landmark
 
   protected:
-    bool _initialized   = false; //!> Flag to check if the landmark is initialized
-    bool _in_map        = false; //!> Flag to check if the landmark is in the map
-    bool _outlier       = false; //!> Flag to check if the landmark is an outlier
-    bool _is_resurected = false; //!> Flag to check if the landmark has been resurected
-    bool _has_prior     = false; //!> Flag to check if the landmark has a prior
-    bool _is_marg       = false; //!> Flag to check if the landmark is marginalised
+    bool _initialized   = false; //!< Flag to check if the landmark is initialized
+    bool _in_map        = false; //!< Flag to check if the landmark is in the map
+    bool _outlier       = false; //!< Flag to check if the landmark is an outlier
+    bool _is_resurected = false; //!< Flag to check if the landmark has been resurected
+    bool _has_prior     = false; //!< Flag to check if the landmark has a prior
+    bool _is_marg       = false; //!< Flag to check if the landmark is marginalised
 
-    Eigen::Affine3d _T_w_l;           //!> Landmark pose in world frame
-    cv::Mat _descriptor;              //!> Descriptor of the landmark, used for matching
-    std::shared_ptr<AModel3d> _model; //!> 3D model of the landmark
+    Eigen::Affine3d _T_w_l;           //!< Landmark pose in world frame
+    cv::Mat _descriptor;              //!< Descriptor of the landmark, used for matching
+    std::shared_ptr<AModel3d> _model; //!< 3D model of the landmark
 
-    std::vector<std::weak_ptr<AFeature>> _features; //!> Features associated to the landmark
+    std::vector<std::weak_ptr<AFeature>> _features; //!< Features associated to the landmark
 
     mutable std::mutex _lmk_mtx;
 };

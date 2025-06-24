@@ -100,10 +100,10 @@ class AFeatureMatcher {
                             vec_feat_matches_scores &all_scores12,
                             vec_feat_matches_scores &all_scores21);
 
-    std::shared_ptr<AFeatureDetector> _detector; //!> feature detector for distance measurement
+    std::shared_ptr<AFeatureDetector> _detector; //!< feature detector for distance measurement
     double _first_second_match_score_ratio =
-        0.9;                    //!> ratio between the first and second best match score to consider a match valid
-    std::string _feature_label; //!> label for the features being matched
+        0.9;                    //!< ratio between the first and second best match score to consider a match valid
+    std::string _feature_label; //!< label for the features being matched
 };
 
 } // namespace isae

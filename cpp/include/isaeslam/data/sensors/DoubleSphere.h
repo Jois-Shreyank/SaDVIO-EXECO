@@ -46,8 +46,8 @@ class DoubleSphere : public ImageSensor {
 
   private:
     std::string _model;
-    double _alpha; //!> Alpha parameter for the double sphere model
-    double _xi;    //!> Xi parameter for the double sphere model
+    double _alpha; //!< Alpha parameter for the double sphere model
+    double _xi;    //!< Xi parameter for the double sphere model
 };
 
 } // namespace isae

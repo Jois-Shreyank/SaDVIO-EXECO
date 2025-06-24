@@ -186,17 +186,17 @@ class AOptimizer {
                          std::vector<std::shared_ptr<Frame>> &frame_vector,
                          size_t fixed_frame_number);
 
-    std::unordered_map<std::shared_ptr<Frame>, PoseParametersBlock> _map_frame_posepar; //!> map for pose parameters
+    std::unordered_map<std::shared_ptr<Frame>, PoseParametersBlock> _map_frame_posepar; //!< map for pose parameters
     std::unordered_map<std::shared_ptr<Frame>, PointXYZParametersBlock>
-        _map_frame_velpar; //!> map for velocity parameters
+        _map_frame_velpar; //!< map for velocity parameters
     std::unordered_map<std::shared_ptr<Frame>, PointXYZParametersBlock>
-        _map_frame_dbapar; //!> map for accelerometer bias parameters
+        _map_frame_dbapar; //!< map for accelerometer bias parameters
     std::unordered_map<std::shared_ptr<Frame>, PointXYZParametersBlock>
-        _map_frame_dbgpar; //!> map for gyroscope bias parameters
+        _map_frame_dbgpar; //!< map for gyroscope bias parameters
     std::unordered_map<std::shared_ptr<ALandmark>, PointXYZParametersBlock>
-        _map_lmk_ptpar; //!> map for landmark point parameters
+        _map_lmk_ptpar; //!< map for landmark point parameters
     std::unordered_map<std::shared_ptr<ALandmark>, PoseParametersBlock>
-        _map_lmk_posepar; //!> map for landmark pose parameters
+        _map_lmk_posepar; //!< map for landmark pose parameters
 
     bool _enable_sparsif = false;                           //!< enable sparsification of the marginalization
     std::shared_ptr<Marginalization> _marginalization;      //!< marginalization object

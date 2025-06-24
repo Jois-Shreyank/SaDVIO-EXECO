@@ -34,8 +34,8 @@ class AOpenCVFeatureDetector : public AFeatureDetector {
         std::vector<std::shared_ptr<AFeature>> existing_features = std::vector<std::shared_ptr<AFeature>>());
 
   protected:
-    cv::Ptr<cv::FeatureDetector> _detector;       //!> Stores the opencv detector
-    cv::Ptr<cv::DescriptorExtractor> _descriptor; //!> Stores the opencv descriptor extractor
+    cv::Ptr<cv::FeatureDetector> _detector;       //!< Stores the opencv detector
+    cv::Ptr<cv::DescriptorExtractor> _descriptor; //!< Stores the opencv descriptor extractor
 };
 
 } // namespace isae

@@ -42,51 +42,51 @@ struct FeatureTrackerStruct {
  * @brief A struct that gathers all the parameters for a feature
  */
 struct FeatureStruct {
-    std::string label_feature;    //!> Label of the feature
-    std::string detector_label;   //!> label of the feature detector
-    int number_detected_features; //!> number of features to be detected by the detector
-    int n_features_per_cell;      //!> number of features per cell for bucketting
-    std::string tracker_label;    //!> class name of the tracker we will use in our SLAM
-    int tracker_height;           //!> searchAreaHeight of tracker
-    int tracker_width;            //!> searchAreaWidth of tracker
-    int tracker_nlvls_pyramids;   //!> nlevels of pyramids for klt tracking
-    double tracker_max_err;       //!> error threshold for klt tracking
-    std::string matcher_label;    //!> class name of the matcher we will use in our SLAM
-    double max_matching_dist;     //!> distance for matching
-    int matcher_height;           //!> searchAreaHeight of tracker
-    int matcher_width;            //!> searchAreaWidth of tracker
+    std::string label_feature;    //!< Label of the feature
+    std::string detector_label;   //!< label of the feature detector
+    int number_detected_features; //!< number of features to be detected by the detector
+    int n_features_per_cell;      //!< number of features per cell for bucketting
+    std::string tracker_label;    //!< class name of the tracker we will use in our SLAM
+    int tracker_height;           //!< searchAreaHeight of tracker
+    int tracker_width;            //!< searchAreaWidth of tracker
+    int tracker_nlvls_pyramids;   //!< nlevels of pyramids for klt tracking
+    double tracker_max_err;       //!< error threshold for klt tracking
+    std::string matcher_label;    //!< class name of the matcher we will use in our SLAM
+    double max_matching_dist;     //!< distance for matching
+    int matcher_height;           //!< searchAreaHeight of tracker
+    int matcher_width;            //!< searchAreaWidth of tracker
     std::string
-        lmk_triangulator; //!> landmarkTriangulation class we will use to triangulate landmark of label_feature type
+        lmk_triangulator; //!< landmarkTriangulation class we will use to triangulate landmark of label_feature type
 };
 
 /*!
  * @brief This structure contains the configuration parameters located in the config file.
  */
 struct Config {
-    std::string dataset_path;    //!> Path to the dataset
-    std::string dataset_id;      //!> Id of the dataset
-    std::string slam_mode;       //!> SLAM mode (mono, bimono, monovio...)
-    bool multithreading;         //!> Allow to run front-end and back-end on different threads (unstable...)
-    bool enable_visu;            //!> Allow visualization
-    std::string optimizer;       //!> Optimizer type (ReprojectionError, AngularError...)
-    int contrast_enhancer;       //!> integer to choose the contrast enhancement algorithm
-    float clahe_clip;            //!> Clip of CLAHE (useful only if it is chosen for contrast enhancement)
-    float downsampling;          //!> Float to reduce the size of the image (0,5 = half the size of the img)
-    int marginalization;         //!> 0 no marginalization, 1 marginalization
-    bool sparsification;         //!> 0 no sparsification, 1 sparsification
-    std::string pose_estimator;  //!> Type of pose estimator
-    std::string tracker;         //!> Type of tracking (matcher or klt)
-    int min_kf_number;           //!> Minimum KF for optimization
-    int max_kf_number;           //!> Size maximum of the sliding windown
-    int fixed_frame_number;      //!> Number of fixed frame for gauge fixing
-    float min_lmk_number;        //!> Below this number of landmark, a KF is voted
-    float min_movement_parallax; //!> Below this parallax, no motion is considered
-    float max_movement_parallax; //!> Over this parallax, a KF is voted
-    bool mesh3D;                 //!> 0 no 3D mesh, 1 3D mesh
-    double ZNCC_tsh;             //!> Threshold on ZNCC for triangle filtering
-    double max_length_tsh;       //!> Threshold on maximum length for triangle filtering
+    std::string dataset_path;    //!< Path to the dataset
+    std::string dataset_id;      //!< Id of the dataset
+    std::string slam_mode;       //!< SLAM mode (mono, bimono, monovio...)
+    bool multithreading;         //!< Allow to run front-end and back-end on different threads (unstable...)
+    bool enable_visu;            //!< Allow visualization
+    std::string optimizer;       //!< Optimizer type (ReprojectionError, AngularError...)
+    int contrast_enhancer;       //!< integer to choose the contrast enhancement algorithm
+    float clahe_clip;            //!< Clip of CLAHE (useful only if it is chosen for contrast enhancement)
+    float downsampling;          //!< Float to reduce the size of the image (0,5 = half the size of the img)
+    int marginalization;         //!< 0 no marginalization, 1 marginalization
+    bool sparsification;         //!< 0 no sparsification, 1 sparsification
+    std::string pose_estimator;  //!< Type of pose estimator
+    std::string tracker;         //!< Type of tracking (matcher or klt)
+    int min_kf_number;           //!< Minimum KF for optimization
+    int max_kf_number;           //!< Size maximum of the sliding windown
+    int fixed_frame_number;      //!< Number of fixed frame for gauge fixing
+    float min_lmk_number;        //!< Below this number of landmark, a KF is voted
+    float min_movement_parallax; //!< Below this parallax, no motion is considered
+    float max_movement_parallax; //!< Over this parallax, a KF is voted
+    bool mesh3D;                 //!< 0 no 3D mesh, 1 3D mesh
+    double ZNCC_tsh;             //!< Threshold on ZNCC for triangle filtering
+    double max_length_tsh;       //!< Threshold on maximum length for triangle filtering
 
-    std::vector<FeatureStruct> features_handled; //!> types of features the slam will work on separated with commas (,)
+    std::vector<FeatureStruct> features_handled; //!< types of features the slam will work on separated with commas (,)
 };
 
 /*!

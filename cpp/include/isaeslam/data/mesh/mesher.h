@@ -36,12 +36,12 @@ class Mesher {
     /*! @brief The thread function */
     void run();
 
-    std::queue<std::shared_ptr<Frame>> _kf_queue; //!> The queue of keyframes to process
-    std::shared_ptr<Frame> _curr_kf;              //!> The current keyframe being processed
-    std::shared_ptr<Mesh3D> _mesh_3d;             //!> The 3D mesh object
-    std::string _slam_mode;                       //!> The SLAM mode (e.g., "nofov", "bimono", etc.)
-    double _avg_mesh_t;                           //!> Average time taken to process a mesh update for profiling
-    int _n_kf;                                    //!> Number of keyframes processed for profiling
+    std::queue<std::shared_ptr<Frame>> _kf_queue; //!< The queue of keyframes to process
+    std::shared_ptr<Frame> _curr_kf;              //!< The current keyframe being processed
+    std::shared_ptr<Mesh3D> _mesh_3d;             //!< The 3D mesh object
+    std::string _slam_mode;                       //!< The SLAM mode (e.g., "nofov", "bimono", etc.)
+    double _avg_mesh_t;                           //!< Average time taken to process a mesh update for profiling
+    int _n_kf;                                    //!< Number of keyframes processed for profiling
 
     mutable std::mutex _mesher_mtx;
 };

@@ -156,14 +156,14 @@ class IMU : public ASensor {
      */
     void updateBiases();
 
-    Eigen::Matrix3d _J_dR_bg; //!> Jacobian of the delta rotation w.r.t the gyro bias
-    Eigen::Matrix3d _J_dv_ba; //!> Jacobian of the delta velocity w.r.t the accel bias
-    Eigen::Matrix3d _J_dv_bg; //!> Jacobian of the delta velocity w.r.t the gyro bias
-    Eigen::Matrix3d _J_dp_ba; //!> Jacobian of the delta position w.r.t the accel bias
-    Eigen::Matrix3d _J_dp_bg; //!> Jacobian of the delta position w.r.t the gyro bias
+    Eigen::Matrix3d _J_dR_bg; //!< Jacobian of the delta rotation w.r.t the gyro bias
+    Eigen::Matrix3d _J_dv_ba; //!< Jacobian of the delta velocity w.r.t the accel bias
+    Eigen::Matrix3d _J_dv_bg; //!< Jacobian of the delta velocity w.r.t the gyro bias
+    Eigen::Matrix3d _J_dp_ba; //!< Jacobian of the delta position w.r.t the accel bias
+    Eigen::Matrix3d _J_dp_bg; //!< Jacobian of the delta position w.r.t the gyro bias
 
-    unsigned long long _timestamp_imu; //!> Timestamp stored to avoid dependency on the frame
-    Eigen::Affine3d _T_w_f_imu;        //!> Transform from the world to the frame to avoid dependency on the frame
+    unsigned long long _timestamp_imu; //!< Timestamp stored to avoid dependency on the frame
+    Eigen::Affine3d _T_w_f_imu;        //!< Transform from the world to the frame to avoid dependency on the frame
 
   private:
     // Measurements
@@ -180,8 +180,8 @@ class IMU : public ASensor {
 
     // States computed by processIMU()
     Eigen::Vector3d _delta_p; //!< Pre integration delta in position
-    Eigen::Vector3d _delta_v; //!> Pre integration delta in velocity
-    Eigen::Matrix3d _delta_R; //!> Pre integration delta in orientation (SO(3))
+    Eigen::Vector3d _delta_v; //!< Pre integration delta in velocity
+    Eigen::Matrix3d _delta_R; //!< Pre integration delta in orientation (SO(3))
     Eigen::Vector3d _ba;      //!< Accelerometer bias
     Eigen::Vector3d _bg;      //! Gyroscope bias
     Eigen::Vector3d _v;       //!< Velocity of the IMU in the world frame

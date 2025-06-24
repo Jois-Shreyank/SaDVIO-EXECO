@@ -205,12 +205,12 @@ class ImageSensor : public ASensor, public std::enable_shared_from_this<ImageSen
                          double *J_proj_lmk)                       = 0;
 
   protected:
-    Eigen::Matrix3d _calibration;  //!> intrinsic matrix of the camera (sensor ?)
-    cv::Mat _raw_data;             //!> Raw image data
-    std::vector<cv::Mat> _img_pyr; //!> Image pyramid for multi-scale processing
-    cv::Mat _mask;                 //!> Mask to ignore
-    typed_vec_features _features;  //!> Typed vector of features
-    bool _has_depth;               //!> Is it a RGBD ?
+    Eigen::Matrix3d _calibration;  //!< intrinsic matrix of the camera (sensor ?)
+    cv::Mat _raw_data;             //!< Raw image data
+    std::vector<cv::Mat> _img_pyr; //!< Image pyramid for multi-scale processing
+    cv::Mat _mask;                 //!< Mask to ignore
+    typed_vec_features _features;  //!< Typed vector of features
+    bool _has_depth;               //!< Is it a RGBD ?
 
     std::mutex _cam_mtx;
 };

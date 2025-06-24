@@ -114,41 +114,41 @@ class Marginalization {
      */
     double computeKLD(Eigen::MatrixXd A_p, Eigen::MatrixXd A_q);
 
-    int _m;                    //!> Parametric size of the variables to marginalize
-    int _n;                    //!> Parametric size of the variables to keep
-    int _n_full;               //!> Parametric size of the variables to keep after rank reveilling
-    const double _eps = 1e-12; //!> Threshold to consider a null eigen value
+    int _m;                    //!< Parametric size of the variables to marginalize
+    int _n;                    //!< Parametric size of the variables to keep
+    int _n_full;               //!< Parametric size of the variables to keep after rank reveilling
+    const double _eps = 1e-12; //!< Threshold to consider a null eigen value
 
     // Bookeeping of the variables to keep and to marginalize
-    std::shared_ptr<Frame> _frame_to_marg;                            //!> Frame to marginalize
-    std::shared_ptr<Frame> _frame_to_keep;                            //!> Frame to keep
-    typed_vec_landmarks _lmk_to_keep;                                 //!> Set of landmarks to keep
-    typed_vec_landmarks _lmk_to_marg;                                 //!> Set of landmarks to marginalize
-    std::unordered_map<std::shared_ptr<Frame>, int> _map_frame_idx;   //!> Map between frames and indices in _Ak
-    std::unordered_map<std::shared_ptr<ALandmark>, int> _map_lmk_idx; //!> Map between landmarks and indices in _Ak
+    std::shared_ptr<Frame> _frame_to_marg;                            //!< Frame to marginalize
+    std::shared_ptr<Frame> _frame_to_keep;                            //!< Frame to keep
+    typed_vec_landmarks _lmk_to_keep;                                 //!< Set of landmarks to keep
+    typed_vec_landmarks _lmk_to_marg;                                 //!< Set of landmarks to marginalize
+    std::unordered_map<std::shared_ptr<Frame>, int> _map_frame_idx;   //!< Map between frames and indices in _Ak
+    std::unordered_map<std::shared_ptr<ALandmark>, int> _map_lmk_idx; //!< Map between landmarks and indices in _Ak
     std::unordered_map<std::shared_ptr<Frame>, Eigen::MatrixXd>
-        _map_frame_inf; //!> Map between frame and their marginal information matrix
+        _map_frame_inf; //!< Map between frame and their marginal information matrix
     std::vector<std::shared_ptr<MarginalizationBlockInfo>>
-        _marginalization_blocks; //!> Vector of Marginalization blocks to derive _Ak
+        _marginalization_blocks; //!< Vector of Marginalization blocks to derive _Ak
 
     // Sparsification info
     std::unordered_map<std::shared_ptr<ALandmark>, Eigen::Matrix3d>
-        _map_lmk_inf; //!> Map between landmarks and info mat of sparse relative prior factors
+        _map_lmk_inf; //!< Map between landmarks and info mat of sparse relative prior factors
     std::unordered_map<std::shared_ptr<ALandmark>, Eigen::Vector3d>
-        _map_lmk_prior;                         //!> Map between landmarks and priors of sparse prior relative factors
-    std::shared_ptr<ALandmark> _lmk_with_prior; //!> Landmark that has an absolute prior factor
-    Eigen::Matrix3d _info_lmk;                  //!> Information matrix of the landmark absolute prior
-    Eigen::Vector3d _prior_lmk;                 //!> Prior of the landmark absolute prior
+        _map_lmk_prior;                         //!< Map between landmarks and priors of sparse prior relative factors
+    std::shared_ptr<ALandmark> _lmk_with_prior; //!< Landmark that has an absolute prior factor
+    Eigen::Matrix3d _info_lmk;                  //!< Information matrix of the landmark absolute prior
+    Eigen::Vector3d _prior_lmk;                 //!< Prior of the landmark absolute prior
 
     // Matrices and vectors of the dense prior
-    Eigen::MatrixXd _Ak;                       //!> Information matrix of the subproblem
-    Eigen::VectorXd _bk;                       //!> Gradient of the subproblem
-    Eigen::MatrixXd _Sigma_k;                  //!> Covariance of the dense prior
-    Eigen::MatrixXd _U;                        //!> Eigen vectors that have non null eigen values
-    Eigen::VectorXd _Lambda;                   //!> Non null Eigen values
-    Eigen::VectorXd _Sigma;                    //!> Inverse of _Lambda
-    Eigen::MatrixXd _marginalization_jacobian; //!> Jacobian of the dense prior factor
-    Eigen::VectorXd _marginalization_residual; //!> Residual of the dense prior factor
+    Eigen::MatrixXd _Ak;                       //!< Information matrix of the subproblem
+    Eigen::VectorXd _bk;                       //!< Gradient of the subproblem
+    Eigen::MatrixXd _Sigma_k;                  //!< Covariance of the dense prior
+    Eigen::MatrixXd _U;                        //!< Eigen vectors that have non null eigen values
+    Eigen::VectorXd _Lambda;                   //!< Non null Eigen values
+    Eigen::VectorXd _Sigma;                    //!< Inverse of _Lambda
+    Eigen::MatrixXd _marginalization_jacobian; //!< Jacobian of the dense prior factor
+    Eigen::VectorXd _marginalization_residual; //!< Residual of the dense prior factor
 };
 
 /*!

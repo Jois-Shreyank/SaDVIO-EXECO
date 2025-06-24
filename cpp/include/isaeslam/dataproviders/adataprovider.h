@@ -59,12 +59,12 @@ class ADataProvider {
     void loadCamConfig(YAML::Node cam_node);
     void loadIMUConfig(YAML::Node imu_node);
 
-    std::shared_ptr<imu_config> _imu_config;               //!> IMU configuration
-    std::vector<std::shared_ptr<cam_config>> _cam_configs; //!> Vector of camera configurations
-    int _ncam;                                             //!> Number of Image Sensors
-    std::queue<std::shared_ptr<Frame>> _frame_queue;       //!> Queue of frames to be processed
-    Config _slam_config;                                   //!> SLAM configuration
-    int _nframes;                                          //!> Frame counter
+    std::shared_ptr<imu_config> _imu_config;               //!< IMU configuration
+    std::vector<std::shared_ptr<cam_config>> _cam_configs; //!< Vector of camera configurations
+    int _ncam;                                             //!< Number of Image Sensors
+    std::queue<std::shared_ptr<Frame>> _frame_queue;       //!< Queue of frames to be processed
+    Config _slam_config;                                   //!< SLAM configuration
+    int _nframes;                                          //!< Frame counter
 };
 
 /*!
@@ -99,14 +99,14 @@ class EUROCGrabber {
     }
 
   private:
-    double _time_tolerance = 0.0025; //!> Time tolerance in seconds to consider measurements as synchronized
-    std::string _folder_path;        //!> Path to the folder containing the dataset
-    std::queue<std::string> _cam0_filename_queue, _cam1_filename_queue; //!> Queues for camera filenames
+    double _time_tolerance = 0.0025; //!< Time tolerance in seconds to consider measurements as synchronized
+    std::string _folder_path;        //!< Path to the folder containing the dataset
+    std::queue<std::string> _cam0_filename_queue, _cam1_filename_queue; //!< Queues for camera filenames
     std::queue<double> _cam0_timestamp_queue, _cam1_timestamp_queue,
-        _imu_timestamp_queue;                    //!> Queues for camera and IMU timestamps
-    std::queue<std::shared_ptr<IMU>> _imu_queue; //!> Queue for IMU sensors
+        _imu_timestamp_queue;                    //!< Queues for camera and IMU timestamps
+    std::queue<std::shared_ptr<IMU>> _imu_queue; //!< Queue for IMU sensors
 
-    std::shared_ptr<ADataProvider> _prov; //!> Pointer to the data provider
+    std::shared_ptr<ADataProvider> _prov; //!< Pointer to the data provider
 };
 
 } // namespace isae

@@ -72,8 +72,8 @@ class SLAMCore {
      */
     void runFullOdom();
 
-    bool _is_init         = false; //!> Flag for initialization
-    int _successive_fails = 0;     //!> Number of successive failure to trigger reinitialization
+    bool _is_init         = false; //!< Flag for initialization
+    int _successive_fails = 0;     //!< Number of successive failure to trigger reinitialization
 
     // Public variables for display
     std::shared_ptr<isae::SLAMParameters> _slam_param;
@@ -193,27 +193,27 @@ class SLAMCore {
     void profiling();
 
   protected:
-    std::shared_ptr<Frame> _frame; //!> Current frame
+    std::shared_ptr<Frame> _frame; //!< Current frame
 
     // Typed vector for matches
-    typed_vec_match _matches_in_time;     //!> Typed vector of the matches between the last KF and _frame
-    typed_vec_match _matches_in_time_lmk; //!> Typed vector of the matches with landmarks between the last KF and _frame
-    typed_vec_match _matches_in_frame;    //!> Typed vector of the matches between the sensors of _frame
-    typed_vec_match _matches_in_frame_lmk; //!> Typed vector of the matches with landmarks between the sensors of _frame
+    typed_vec_match _matches_in_time;     //!< Typed vector of the matches between the last KF and _frame
+    typed_vec_match _matches_in_time_lmk; //!< Typed vector of the matches with landmarks between the last KF and _frame
+    typed_vec_match _matches_in_frame;    //!< Typed vector of the matches between the sensors of _frame
+    typed_vec_match _matches_in_frame_lmk; //!< Typed vector of the matches with landmarks between the sensors of _frame
 
     // Local Map, Mesh and Keyframe voting policy
-    std::shared_ptr<isae::LocalMap> _local_map;   //!> Current local map
-    std::shared_ptr<isae::GlobalMap> _global_map; //!> Current global map
-    std::shared_ptr<Mesher> _mesher;              //!> Mesher of the SLAM
-    double _max_movement_parallax;                //!> Max parallax until a KF is voted
-    double _min_movement_parallax;                //!> Under this parallax, no motion is considered
-    double _min_lmk_number;                       //!> Under this number of landmark in _frame a KF is voted
-    double _parallax;                             //!> Parallax between the last KF and _frame
-    Vector6d _6d_velocity;                        //!> Current Velocity as a Twist vector
+    std::shared_ptr<isae::LocalMap> _local_map;   //!< Current local map
+    std::shared_ptr<isae::GlobalMap> _global_map; //!< Current global map
+    std::shared_ptr<Mesher> _mesher;              //!< Mesher of the SLAM
+    double _max_movement_parallax;                //!< Max parallax until a KF is voted
+    double _min_movement_parallax;                //!< Under this parallax, no motion is considered
+    double _min_lmk_number;                       //!< Under this number of landmark in _frame a KF is voted
+    double _parallax;                             //!< Parallax between the last KF and _frame
+    Vector6d _6d_velocity;                        //!< Current Velocity as a Twist vector
 
     // To ensure safe communication between threads
     std::mutex _map_mutex;
-    std::shared_ptr<Frame> _frame_to_optim; //!> For communication between front-end and back-end
+    std::shared_ptr<Frame> _frame_to_optim; //!< For communication between front-end and back-end
 
     // Profiling variables
     uint _nframes;
@@ -279,7 +279,7 @@ class SLAMBiMonoVIO : public SLAMCore {
     void IMUprofiling();
 
   private:
-    std::shared_ptr<IMU> _last_IMU; //!> Last IMU processed by the SLAM
+    std::shared_ptr<IMU> _last_IMU; //!< Last IMU processed by the SLAM
 };
 
 /*!
@@ -300,7 +300,7 @@ class SLAMMonoVIO : public SLAMCore {
     bool step_init();
 
   private:
-    std::shared_ptr<IMU> _last_IMU; //!> Last IMU processed by the SLAM
+    std::shared_ptr<IMU> _last_IMU; //!< Last IMU processed by the SLAM
 };
 
 /*!
@@ -365,9 +365,9 @@ class SLAMNonOverlappingFov : public SLAMCore {
     bool predict(std::shared_ptr<Frame> &f);
 
   private:
-    typed_vec_match _matches_in_time_cam1; //!> Typed vector of the matches between the last KF and _frame on cam1
+    typed_vec_match _matches_in_time_cam1; //!< Typed vector of the matches between the last KF and _frame on cam1
     typed_vec_match
-        _matches_in_time_cam1_lmk; //!> Typed vector of the matches with lmks between the last KF and _frame on cam1
+        _matches_in_time_cam1_lmk; //!< Typed vector of the matches with lmks between the last KF and _frame on cam1
 };
 
 } // namespace isae

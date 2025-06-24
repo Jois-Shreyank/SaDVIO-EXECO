@@ -111,21 +111,21 @@ class Mesh3D {
 
   private:
     std::unordered_map<std::shared_ptr<ALandmark>, std::shared_ptr<Vertex>>
-        _map_lmk_vertex;                             //!> A map between landmarks and vertices
-    std::vector<std::shared_ptr<Polygon>> _polygons; //!> The vector of polygons representing the 3D Mesh
-    std::vector<Eigen::Vector3d> _point_cloud;       //!> The point cloud generated from the mesh
+        _map_lmk_vertex;                             //!< A map between landmarks and vertices
+    std::vector<std::shared_ptr<Polygon>> _polygons; //!< The vector of polygons representing the 3D Mesh
+    std::vector<Eigen::Vector3d> _point_cloud;       //!< The point cloud generated from the mesh
     std::unordered_map<std::shared_ptr<Polygon>, std::vector<Eigen::Vector2d>>
-        _map_poly_tri2d; //!> A map between polygons and their 2D projection in the current frame
+        _map_poly_tri2d; //!< A map between polygons and their 2D projection in the current frame
 
     // Storage of frame related objects
-    std::shared_ptr<Frame> _reference_frame;   //!> The current frame to build / update the mesh
-    std::shared_ptr<ImageSensor> _cam0, _cam1; //!> Pointers to the cameras of the current frame
-    cv::Mat _img0, _img1;                      //!> The images of the cameras of the current frame
-    Eigen::Affine3d _T_w_cam0;                 //!> The world to camera 0 transform of the current frame
+    std::shared_ptr<Frame> _reference_frame;   //!< The current frame to build / update the mesh
+    std::shared_ptr<ImageSensor> _cam0, _cam1; //!< Pointers to the cameras of the current frame
+    cv::Mat _img0, _img1;                      //!< The images of the cameras of the current frame
+    Eigen::Affine3d _T_w_cam0;                 //!< The world to camera 0 transform of the current frame
 
     // Tuning parameters
-    double _ZNCC_tsh       = 0.8; //!> The ZNCC threshold for photometric checks
-    double _max_length_tsh = 5;   //!> The maximum length threshold for edges in the mesh
+    double _ZNCC_tsh       = 0.8; //!< The ZNCC threshold for photometric checks
+    double _max_length_tsh = 5;   //!< The maximum length threshold for edges in the mesh
 };
 
 /*!
@@ -158,9 +158,9 @@ struct Vertex {
     }
 
   private:
-    std::shared_ptr<ALandmark> _lmk;                 //!> The landmark associated with the vertex
-    Eigen::Vector3d _vertex_normal;                  //!> The normal of the vertex
-    std::vector<std::shared_ptr<Polygon>> _polygons; //!> The polygons associated with the vertex
+    std::shared_ptr<ALandmark> _lmk;                 //!< The landmark associated with the vertex
+    Eigen::Vector3d _vertex_normal;                  //!< The normal of the vertex
+    std::vector<std::shared_ptr<Polygon>> _polygons; //!< The polygons associated with the vertex
 
     mutable std::mutex _lmk_mtx;
 };
@@ -191,12 +191,12 @@ struct Polygon : std::enable_shared_from_this<Polygon> {
     bool isOutlier() { return _outlier; }
 
   private:
-    Eigen::Vector3d _normal;                        //!> The normal of the polygon
-    Eigen::Vector3d _barycenter;                    //!> The barycenter of the polygon
-    Eigen::Matrix2d _covariance;                    //!> The covariance matrix of the polygon
-    double _traversability_score;                   //!> The traversability score of the polygon i.e. the ZNCC score
-    bool _outlier;                                  //!> Whether the polygon is an outlier or not
-    std::vector<std::shared_ptr<Vertex>> _vertices; //!> The vertices of the polygon
+    Eigen::Vector3d _normal;                        //!< The normal of the polygon
+    Eigen::Vector3d _barycenter;                    //!< The barycenter of the polygon
+    Eigen::Matrix2d _covariance;                    //!< The covariance matrix of the polygon
+    double _traversability_score;                   //!< The traversability score of the polygon i.e. the ZNCC score
+    bool _outlier;                                  //!< Whether the polygon is an outlier or not
+    std::vector<std::shared_ptr<Vertex>> _vertices; //!< The vertices of the polygon
 };
 
 } // namespace isae

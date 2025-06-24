@@ -63,11 +63,11 @@ class Motion2DFactor : public ceres::SizedCostFunction<6, 6, 6> {
         return true;
     }
 
-    Eigen::Vector2d _motion_2d; //!> The velocity on the 2D plane
-    Eigen::MatrixXd _sqrt_inf;  //!> The square root informatino matrix of the measurement
-    double _dt;                 //!> The integration time
-    double _dx;                 //!> The forward displacement
-    double _dtheta;             //!> The angular displacement
+    Eigen::Vector2d _motion_2d; //!< The velocity on the 2D plane
+    Eigen::MatrixXd _sqrt_inf;  //!< The square root informatino matrix of the measurement
+    double _dt;                 //!< The integration time
+    double _dx;                 //!< The forward displacement
+    double _dtheta;             //!< The angular displacement
 };
 
 /*!
@@ -132,8 +132,8 @@ class Relative6DPose : public ceres::SizedCostFunction<6, 6, 6> {
         return true;
     }
 
-    Eigen::Affine3d _T_w_a, _T_w_b, _T_a_b_prior; //!> All the poses needed
-    Eigen::MatrixXd _sqrt_inf;                    //!> Square root of the information matrix
+    Eigen::Affine3d _T_w_a, _T_w_b, _T_a_b_prior; //!< All the poses needed
+    Eigen::MatrixXd _sqrt_inf;                    //!< Square root of the information matrix
 };
 
 /*!
@@ -252,7 +252,7 @@ class IMUFactor : public ceres::SizedCostFunction<9, 6, 6, 3, 3, 3, 3> {
         return true;
     }
 
-    std::shared_ptr<IMU> _imu_i, _imu_j; //!> The first and the last IMU of the pre-integration
+    std::shared_ptr<IMU> _imu_i, _imu_j; //!< The first and the last IMU of the pre-integration
 };
 
 /*!
@@ -309,7 +309,7 @@ class IMUBiasFactor : public ceres::SizedCostFunction<6, 3, 3, 3, 3> {
         return true;
     }
 
-    std::shared_ptr<IMU> _imu_i, _imu_j; //!> The first and the last IMU of the pre-integration
+    std::shared_ptr<IMU> _imu_i, _imu_j; //!< The first and the last IMU of the pre-integration
 };
 
 /*!
@@ -422,7 +422,7 @@ class IMUFactorInit : public ceres::SizedCostFunction<9, 2, 3, 3, 3, 3, 1> {
         return true;
     }
 
-    std::shared_ptr<IMU> _imu_i, _imu_j; //!> The first and the last IMU of the pre-integration
+    std::shared_ptr<IMU> _imu_i, _imu_j; //!< The first and the last IMU of the pre-integration
 };
 
 /*!
@@ -521,7 +521,7 @@ class IMUFactorInitBis : public ceres::SizedCostFunction<9, 2, 3, 3, 1> {
         return true;
     }
 
-    std::shared_ptr<IMU> _imu_i, _imu_j; //!> The first and the last IMU of the pre-integration
+    std::shared_ptr<IMU> _imu_i, _imu_j; //!< The first and the last IMU of the pre-integration
 };
 
 /*!
@@ -545,8 +545,8 @@ class Landmark3DPrior : public ceres::SizedCostFunction<3, 3> {
         return true;
     }
 
-    Eigen::Vector3d _prior, _lmk; //!> Prior and current 3D positions
-    Eigen::Matrix3d _sqrt_inf;    //!> Square root information matrix
+    Eigen::Vector3d _prior, _lmk; //!< Prior and current 3D positions
+    Eigen::Matrix3d _sqrt_inf;    //!< Square root information matrix
 };
 
 /*!
@@ -581,8 +581,8 @@ class LandmarkToLandmarkFactor : public ceres::SizedCostFunction<3, 3, 3> {
 
         return true;
     }
-    Eigen::Vector3d _delta, _lmk0, _lmk1; //!> Prior on relative translation and positions of the landmarks
-    Eigen::Matrix3d _sqrt_inf;            //!> Square root information matrix
+    Eigen::Vector3d _delta, _lmk0, _lmk1; //!< Prior on relative translation and positions of the landmarks
+    Eigen::Matrix3d _sqrt_inf;            //!< Square root information matrix
 };
 
 /*!
@@ -623,9 +623,9 @@ class PoseToLandmarkFactor : public ceres::SizedCostFunction<3, 6, 3> {
 
         return true;
     }
-    Eigen::Vector3d _delta, _t_w_lmk; //!> The prior delta and the landmark 3D position
-    Eigen::Affine3d _T_f_w;           //!> The pose of the linked frame
-    Eigen::Matrix3d _sqrt_inf;        //!> Square root information matrix
+    Eigen::Vector3d _delta, _t_w_lmk; //!< The prior delta and the landmark 3D position
+    Eigen::Affine3d _T_f_w;           //!< The pose of the linked frame
+    Eigen::Matrix3d _sqrt_inf;        //!< Square root information matrix
 };
 
 /*!
@@ -660,8 +660,8 @@ class PosePriordx : public ceres::SizedCostFunction<6, 6> {
         return true;
     }
 
-    Eigen::Affine3d _T, _T_prior; //!> The 6DoF pose prior and its current value
-    Eigen::MatrixXd _sqrt_inf;    //!> Square root information matrix
+    Eigen::Affine3d _T, _T_prior; //!< The 6DoF pose prior and its current value
+    Eigen::MatrixXd _sqrt_inf;    //!< Square root information matrix
 };
 
 /*!
@@ -730,9 +730,9 @@ class IMUPriordx : public ceres::SizedCostFunction<15, 6, 3, 3, 3> {
         return true;
     }
 
-    Eigen::Affine3d _T, _T_prior;                                 //!> Pose prior and current value
-    Eigen::Vector3d _v, _v_prior, _ba, _ba_prior, _bg, _bg_prior; //!> Prior and current value for velocity and biases
-    Eigen::MatrixXd _sqrt_inf;                                    //!> Square root information matrix
+    Eigen::Affine3d _T, _T_prior;                                 //!< Pose prior and current value
+    Eigen::Vector3d _v, _v_prior, _ba, _ba_prior, _bg, _bg_prior; //!< Prior and current value for velocity and biases
+    Eigen::MatrixXd _sqrt_inf;                                    //!< Square root information matrix
 };
 
 /*!
@@ -752,7 +752,7 @@ class scalePrior : public ceres::SizedCostFunction<1, 1> {
 
         return true;
     }
-    double _sqrt_inf; //!> Square root information matrix
+    double _sqrt_inf; //!< Square root information matrix
 };
 
 } // namespace isae

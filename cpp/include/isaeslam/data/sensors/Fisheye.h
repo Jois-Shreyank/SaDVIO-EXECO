@@ -123,9 +123,9 @@ class Omni : public ImageSensor {
     Eigen::Vector2d distort(const Eigen::Vector2d &p);
 
   private:
-    double _xi, _alpha; //!> Xi and alpha parameters for the Omni model
-    bool _distortion;   //!> Flag to indicate if distortion parameters are used
-    Eigen::Vector4d _D; //!> Distortion parameters (k1, k2, p1, p2)
+    double _xi, _alpha; //!< Xi and alpha parameters for the Omni model
+    bool _distortion;   //!< Flag to indicate if distortion parameters are used
+    Eigen::Vector4d _D; //!< Distortion parameters (k1, k2, p1, p2)
 };
 
 } // namespace isae

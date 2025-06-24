@@ -42,7 +42,7 @@ class CsvKeypointDetector : public ACustomFeatureDetector {
     double computeDist(const cv::Mat &desc1, const cv::Mat &desc2) const override;
 
   private:
-    std::string _folder_path; //!> path of the folder where the csv's are stored
+    std::string _folder_path; //!< path of the folder where the csv's are stored
 };
 
 } // namespace isae

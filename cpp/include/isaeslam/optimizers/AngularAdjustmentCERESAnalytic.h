@@ -126,7 +126,7 @@ class AngularErrCeres_pointxd_dx : public ceres::SizedCostFunction<2, 6, 3> {
   protected:
     const Eigen::Vector3d _bearing_vector; //!< Bearing vector of the landmark in the sensor frame
     const Eigen::Affine3d _T_s_f;          //!< Transform of the frame w.r.t. the sensor
-    const Eigen::Affine3d _T_f_w;          //!> Transform of the world w.r.t. the frame
+    const Eigen::Affine3d _T_f_w;          //!< Transform of the world w.r.t. the frame
     const Eigen::Vector3d _t_w_lmk;        //!< Position of the landmark in the world frame
     const double _sigma;                   //!< Standard deviation for the residuals, used as a weight
 };
@@ -482,7 +482,7 @@ class AngularErrCeres_linexd_dx : public ceres::SizedCostFunction<2, 6, 6> {
   protected:
     const std::vector<Eigen::Vector3d> _bearing_vectors; //!< Bearing vectors of the line in the sensor frame
     const Eigen::Affine3d _T_s_f;                        //!< Transform of the frame w.r.t. the sensor
-    const Eigen::Affine3d _T_f_w;                        //!> Transform of the world w.r.t. the frame
+    const Eigen::Affine3d _T_f_w;                        //!< Transform of the world w.r.t. the frame
     const Eigen::Affine3d _T_w_lmk;                      //!< Pose of the landmark in the world frame
     const double _sigma;                                 //!< Standard deviation for the residuals, used as a weight
 };

@@ -131,9 +131,9 @@ class AFeatureDetector {
     static void FeatureToP2f(std::vector<std::shared_ptr<AFeature>> features, std::vector<cv::Point2f> &p2fs);
 
   protected:
-    int _n_total;              //!> the maximum amount of features the detector should find for any given image
-    int _n_per_cell;           //!> the number of features per cell
-    double _max_matching_dist; //!> distance threshold for matching
+    int _n_total;              //!< the maximum amount of features the detector should find for any given image
+    int _n_per_cell;           //!< the number of features per cell
+    double _max_matching_dist; //!< distance threshold for matching
 };
 
 } // namespace isae
