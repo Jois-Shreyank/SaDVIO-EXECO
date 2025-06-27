@@ -8,7 +8,9 @@
 
 namespace isae {
 
-// Marginalization block that stores a factor and the indices of the variables involved
+/*!
+ * @brief Marginalization block struct that stores a factor and the indices of the variables involved
+ */
 struct MarginalizationBlockInfo {
 
     MarginalizationBlockInfo(ceres::CostFunction *cost_function,
@@ -27,64 +29,131 @@ struct MarginalizationBlockInfo {
     Eigen::VectorXd _residuals;
 };
 
+/*!
+ * @brief Marginalization class that handles marginalization (and sparsification) for fixed-lag smoothing.
+ *
+ * This class is responsible for selecting the variables to keep and to marginalize, computing the information matrix,
+ * computing the Schur complement, and computing the Jacobians and residuals for the marginalization. It also provides
+ * methods for sparsifying the dense prior in the case of VIO and VO.
+ */
 class Marginalization {
   public:
-    // Select all the variables to keep and to marginalize in the Markov Blanket
+    /*!
+     * @brief Select all the variables to keep and to marginalize in the Markov Blanket for fixed lag smoothing
+     * @param frame0 frame to marginalize
+     * @param frame1 frame linked to frame0
+     * @param marginalization_last previous marginalization scheme
+     */
     void preMarginalize(std::shared_ptr<Frame> &frame0,
                         std::shared_ptr<Frame> &frame1,
                         std::shared_ptr<Marginalization> &marginalization_last);
-    
-    // Select the variables to marginalize to compute relative pose factors
+
+    /*!
+     * @brief Select all the variables to keep and marginalize to derive the relative pose factor between two frames
+     * @param frame0 The first frame
+     * @param frame1 The second frame
+     */
     void preMarginalizeRelative(std::shared_ptr<Frame> &frame0, std::shared_ptr<Frame> &frame1);
 
-    void addMarginalizationBlock(std::shared_ptr<MarginalizationBlockInfo> marginalization_block) {
-        _marginalization_blocks.push_back(marginalization_block);
-    }
+    /*!
+     * @brief Sparsify the dense prior factor in the VIO case
+     */
     bool sparsifyVIO();
+
+    /*!
+     * @brief Sparsify the dense prior factor in the VO case
+     */
     bool sparsifyVO();
+
+    /*!
+     * @brief Compute the information matrix and the gradient for a set of factors
+     * @param blocks The vector of factors stored in Marginalization Blocks
+     * @param A The information matrix
+     * @param B The gradient
+     */
     void computeInformationAndGradient(std::vector<std::shared_ptr<MarginalizationBlockInfo>> blocks,
                                        Eigen::MatrixXd &A,
                                        Eigen::VectorXd &b);
+
+    /*!
+     * @brief Compute the SVD of a given matrix to reveal its rank
+     * @param A The input matrix
+     * @param U The Eigen vectors of non null eigen values (up to a threshold)
+     * @param d Non null Eigen values
+     */
     void rankReveallingDecomposition(Eigen::MatrixXd A, Eigen::MatrixXd &U, Eigen::VectorXd &d);
+
+    /*!
+     * @brief Compute the dense prior with the Schur complement on _Ak
+     */
     bool computeSchurComplement();
+
+    /*!
+     * @brief Compute the jacobian and the residual of the dense prior factor
+     */
     bool computeJacobiansAndResiduals();
+
+    /*!
+     * @brief Compute the Entropy of a given landmark
+     */
     double computeEntropy(std::shared_ptr<ALandmark> lmk);
+
+    /*!
+     * @brief Compute the Mutual Information between two landmarks
+     */
     double computeMutualInformation(std::shared_ptr<ALandmark> lmk_i, std::shared_ptr<ALandmark> lmk_j);
+
+    /*!
+     * @brief Approximate the Mutual Information between two landmarks using off diagonal blocks of _Ak
+     */
     double computeOffDiag(std::shared_ptr<ALandmark> lmk_i, std::shared_ptr<ALandmark> lmk_j);
+
+    /*!
+     * @brief Compute the KLD between the multivariate Gaussian with their Information Matrix assuming their mean is
+     * equal
+     */
     double computeKLD(Eigen::MatrixXd A_p, Eigen::MatrixXd A_q);
 
-    // Marginalization info
-    int _m, _n, _n_full;
-    const double _eps = 1e-12;
+    int _m;                    //!< Parametric size of the variables to marginalize
+    int _n;                    //!< Parametric size of the variables to keep
+    int _n_full;               //!< Parametric size of the variables to keep after rank reveilling
+    const double _eps = 1e-12; //!< Threshold to consider a null eigen value
 
     // Bookeeping of the variables to keep and to marginalize
-    std::shared_ptr<Frame> _frame_to_marg;
-    std::shared_ptr<Frame> _frame_to_keep;
-    typed_vec_landmarks _lmk_to_keep;
-    typed_vec_landmarks _lmk_to_marg;
-    std::unordered_map<std::shared_ptr<Frame>, int> _map_frame_idx;
-    std::unordered_map<std::shared_ptr<ALandmark>, int> _map_lmk_idx;
-    std::unordered_map<std::shared_ptr<Frame>, Eigen::MatrixXd> _map_frame_inf;
-    std::vector<std::shared_ptr<MarginalizationBlockInfo>> _marginalization_blocks;
+    std::shared_ptr<Frame> _frame_to_marg;                            //!< Frame to marginalize
+    std::shared_ptr<Frame> _frame_to_keep;                            //!< Frame to keep
+    typed_vec_landmarks _lmk_to_keep;                                 //!< Set of landmarks to keep
+    typed_vec_landmarks _lmk_to_marg;                                 //!< Set of landmarks to marginalize
+    std::unordered_map<std::shared_ptr<Frame>, int> _map_frame_idx;   //!< Map between frames and indices in _Ak
+    std::unordered_map<std::shared_ptr<ALandmark>, int> _map_lmk_idx; //!< Map between landmarks and indices in _Ak
+    std::unordered_map<std::shared_ptr<Frame>, Eigen::MatrixXd>
+        _map_frame_inf; //!< Map between frame and their marginal information matrix
+    std::vector<std::shared_ptr<MarginalizationBlockInfo>>
+        _marginalization_blocks; //!< Vector of Marginalization blocks to derive _Ak
 
     // Sparsification info
-    std::unordered_map<std::shared_ptr<ALandmark>, Eigen::Matrix3d> _map_lmk_inf;
-    std::unordered_map<std::shared_ptr<ALandmark>, Eigen::Vector3d> _map_lmk_prior;
-    std::shared_ptr<ALandmark> _lmk_with_prior;
-    Eigen::Matrix3d _info_lmk;
-    Eigen::Vector3d _prior_lmk;
+    std::unordered_map<std::shared_ptr<ALandmark>, Eigen::Matrix3d>
+        _map_lmk_inf; //!< Map between landmarks and info mat of sparse relative prior factors
+    std::unordered_map<std::shared_ptr<ALandmark>, Eigen::Vector3d>
+        _map_lmk_prior;                         //!< Map between landmarks and priors of sparse prior relative factors
+    std::shared_ptr<ALandmark> _lmk_with_prior; //!< Landmark that has an absolute prior factor
+    Eigen::Matrix3d _info_lmk;                  //!< Information matrix of the landmark absolute prior
+    Eigen::Vector3d _prior_lmk;                 //!< Prior of the landmark absolute prior
 
     // Matrices and vectors of the dense prior
-    Eigen::MatrixXd _Ak;
-    Eigen::VectorXd _bk;
-    Eigen::MatrixXd _Sigma_k;
-    Eigen::MatrixXd _U;
-    Eigen::VectorXd _Lambda;
-    Eigen::VectorXd _Sigma;
-    Eigen::MatrixXd _marginalization_jacobian;
-    Eigen::VectorXd _marginalization_residual;
+    Eigen::MatrixXd _Ak;                       //!< Information matrix of the subproblem
+    Eigen::VectorXd _bk;                       //!< Gradient of the subproblem
+    Eigen::MatrixXd _Sigma_k;                  //!< Covariance of the dense prior
+    Eigen::MatrixXd _U;                        //!< Eigen vectors that have non null eigen values
+    Eigen::VectorXd _Lambda;                   //!< Non null Eigen values
+    Eigen::VectorXd _Sigma;                    //!< Inverse of _Lambda
+    Eigen::MatrixXd _marginalization_jacobian; //!< Jacobian of the dense prior factor
+    Eigen::VectorXd _marginalization_residual; //!< Residual of the dense prior factor
 };
 
+/*!
+ * @brief Ceres cost function of the dense prior factor
+ */
 class MarginalizationFactor : public ceres::CostFunction {
   public:
     MarginalizationFactor(std::shared_ptr<Marginalization> marginalization_info)

@@ -16,7 +16,7 @@ class semanticBBoxFeatureDetector : public ACustomFeatureDetector {
 
     void init() override;
 
-    double getDist(const cv::Mat &desc1, const cv::Mat &desc2) const override;
+    double computeDist(const cv::Mat &desc1, const cv::Mat &desc2) const override;
 
   private:
 };

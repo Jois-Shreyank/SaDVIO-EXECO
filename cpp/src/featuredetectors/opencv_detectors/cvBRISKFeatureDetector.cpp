@@ -13,7 +13,7 @@ void cvBRISKFeatureDetector::init()
     _descriptor = _detector;
 }
 
-double cvBRISKFeatureDetector::getDist(const cv::Mat &desc1, const cv::Mat &desc2) const
+double cvBRISKFeatureDetector::computeDist(const cv::Mat &desc1, const cv::Mat &desc2) const
 {
 
     return cv::norm(desc1, desc2, _detector->defaultNorm());

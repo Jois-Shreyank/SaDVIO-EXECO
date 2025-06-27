@@ -56,4 +56,5 @@ imu:
   gyroscope_random_walk: 1.9393e-05       # [ rad / s^2 / sqrt(Hz) ] ( gyro bias diffusion )
   accelerometer_noise_density: 2.0000e-2  # [ m / s^2 / sqrt(Hz) ]   ( accel "white noise" )
   accelerometer_random_walk: 3.0000e-1    # [ m / s^3 / sqrt(Hz) ]  ( accel bias diffusion )
+  dt_imu_cam: 0.0
   

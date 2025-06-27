@@ -10,7 +10,7 @@ namespace isae {
         _max_matching_dist = 0.1;
     }
 
-    double semanticBBoxFeatureDetector::getDist(const cv::Mat &desc1, const cv::Mat &desc2) const
+    double semanticBBoxFeatureDetector::computeDist(const cv::Mat &desc1, const cv::Mat &desc2) const
     {
         return cv::norm(desc1, desc2, this->getDefaultNorm());
     }

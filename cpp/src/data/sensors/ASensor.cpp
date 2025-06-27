@@ -14,13 +14,11 @@ void ImageSensor::imageNormalization() { cv::normalize(_raw_data, _raw_data, 0, 
 
 void ImageSensor::applyAGCWD(float alpha) { imgproc::AGCWD(_raw_data, _raw_data, alpha); }
 
-Eigen::Matrix3d ImageSensor::getCalibration() { return _calibration; }
-
 void ImageSensor::addFeature(std::string feature_label, std::shared_ptr<AFeature> f) {
+    std::lock_guard<std::mutex> lock(_cam_mtx);
     f->setSensor(shared_from_this());
     f->computeBearingVectors();
 
-    std::lock_guard<std::mutex> lock(_cam_mtx);
     _features[feature_label].push_back(f);
 }
 

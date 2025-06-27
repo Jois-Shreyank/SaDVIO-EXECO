@@ -14,6 +14,9 @@ namespace isae {
 //< 3D geometry utilities
 namespace geometry {
 
+/*!
+* @brief Computes the skew matrix of a given 3D vector
+*/
 template <typename Derived> inline Eigen::Matrix3d skewMatrix(const Eigen::MatrixBase<Derived> &w) {
     Eigen::Matrix3d skew;
     skew << 0, -w[2], w[1], //
@@ -22,11 +25,20 @@ template <typename Derived> inline Eigen::Matrix3d skewMatrix(const Eigen::Matri
     return skew;
 }
 
+/*!
+* @brief Computes the 3D vector from a given skew matrix
+*/
 inline Eigen::Vector3d FromskewMatrix(const Eigen::Matrix3d &skew) {
     Eigen::Vector3d w(skew(2, 1), skew(0, 2), skew(1, 0));
     return w;
 }
 
+/*!
+* @brief Compute the right jacobian on SO(3) manifold
+*
+* From "A micro Lie theory for state estimation in robotics" Solà et al 
+* Source https://arxiv.org/abs/1812.01537
+*/
 inline Eigen::Matrix3d so3_rightJacobian(const Eigen::Vector3d &w) {
     double w_norm = w.norm();
     Eigen::Matrix3d w_skew = skewMatrix(w);
@@ -36,6 +48,12 @@ inline Eigen::Matrix3d so3_rightJacobian(const Eigen::Vector3d &w) {
            ((w_norm - sin(w_norm)) / (w_norm * w_norm * w_norm)) * w_skew * w_skew;
 }
 
+/*!
+* @brief Compute the left jacobian on SO(3) manifold
+*
+* From "A micro Lie theory for state estimation in robotics" Solà et al 
+* Source https://arxiv.org/abs/1812.01537
+*/
 inline Eigen::Matrix3d so3_leftJacobian(const Eigen::Vector3d &w) {
     Eigen::Matrix3d Jl;
     double w_norm     = w.norm();
@@ -45,6 +63,9 @@ inline Eigen::Matrix3d so3_leftJacobian(const Eigen::Vector3d &w) {
     return Jl;
 }
 
+/*!
+* @brief Compute the Euler angle representation of a rotation matrix
+*/
 inline Eigen::Vector3d rotationMatrixToEulerAnglesEigen(Eigen::Matrix3d R) {
 
     float sy = sqrt(R(0, 0) * R(0, 0) + R(1, 0) * R(1, 0));
@@ -64,6 +85,9 @@ inline Eigen::Vector3d rotationMatrixToEulerAnglesEigen(Eigen::Matrix3d R) {
     return Eigen::Vector3d(x * 180 / 3.1416, y * 180 / 3.1416, z * 180 / 3.1416);
 }
 
+/*!
+* @brief Rotation matrix that rotates a right handed frame with X front to a frame with Z front
+*/
 inline Eigen::Matrix3d xFront2zFront() {
     Eigen::Matrix3d xF2zF;
     xF2zF << 0., -1., 0., //
@@ -72,6 +96,9 @@ inline Eigen::Matrix3d xFront2zFront() {
     return xF2zF;
 }
 
+/*!
+* @brief Rotation matrix that rotates a right handed frame with Z front to a frame with X front
+*/
 inline Eigen::Matrix3d zFront2xFront() {
     Eigen::Matrix3d zF2xF;
     zF2xF << 0, 0, 1, //
@@ -80,6 +107,9 @@ inline Eigen::Matrix3d zFront2xFront() {
     return zF2xF;
 }
 
+/*!
+* @brief Rotation matrix that rotates a right handed frame with X right to a frame with X front
+*/
 inline Eigen::Matrix3d xRight2xFront() {
     Eigen::Matrix3d xR2xF;
     xR2xF << 0., 1., 0., //
@@ -88,26 +118,10 @@ inline Eigen::Matrix3d xRight2xFront() {
     return xR2xF;
 }
 
-inline double dist2EpipolarLine(const Eigen::Vector3d &epipolarline, const Eigen::Vector2d &pt_to_test) {
-    // inverse x and y for image coordinate system
-    return fabs(epipolarline.dot(Eigen::Vector3d(pt_to_test(1), pt_to_test(0), 1.)));
-}
 
-inline double getMaxAngleBetweenVectors(vec3d vecs) {
-    double max = 0;
-    if (vecs.empty())
-        return -1;
-    for (size_t i = 0; i < vecs.size() - 1; i++) {
-        for (size_t j = i + 1; j < vecs.size(); j++) {
-            double angle = std::atan2(vecs[i].cross(vecs[j]).norm(), vecs[i].dot(vecs[j]));
-            angle        = std::abs(angle);
-            if (angle > max)
-                max = angle;
-        }
-    }
-    return max;
-}
-
+/*!
+* @brief Gives the rotation matrix from a direction vector
+*/
 inline Eigen::Matrix3d directionVector2Rotation(Eigen::Vector3d v,
                                                 const Eigen::Vector3d &reference_vector = Eigen::Vector3d(1, 0, 0)) {
 
@@ -122,12 +136,21 @@ inline Eigen::Matrix3d directionVector2Rotation(Eigen::Vector3d v,
     return R;
 }
 
+/*!
+* @brief Gives the direction vector from a rotation matrix
+*/
 inline Eigen::Vector3d Rotation2directionVector(const Eigen::Matrix3d &R,
                                                 const Eigen::Vector3d &reference_vector = Eigen::Vector3d(1, 0, 0)) {
     Eigen::Vector3d v = R * reference_vector;
     return v.normalized(); // assure v is normalized (should already be)
 }
 
+/*!
+* @brief Compute the exponential of the SO(3) manifold
+*
+* From "A micro Lie theory for state estimation in robotics" Solà et al 
+* Source https://arxiv.org/abs/1812.01537
+*/
 inline Eigen::Matrix3d exp_so3(const Eigen::Vector3d &v) {
 
     double tolerance = 1e-9;
@@ -146,6 +169,12 @@ inline Eigen::Matrix3d exp_so3(const Eigen::Vector3d &v) {
     return Rot;
 }
 
+/*!
+* @brief Compute the logarithm of the SO(3) manifold
+*
+* From "A micro Lie theory for state estimation in robotics" Solà et al 
+* Source https://arxiv.org/abs/1812.01537
+*/
 inline Eigen::Vector3d log_so3(const Eigen::Matrix3d &M) {
     double tolerance = 1e-9;
     double cos_angle = 0.5 * M.trace() - 0.5;
@@ -165,6 +194,12 @@ inline Eigen::Vector3d log_so3(const Eigen::Matrix3d &M) {
     return phi;
 }
 
+/*!
+* @brief Compute the logarithm of the SO(3)xT(3) composite manifold
+*
+* From "A micro Lie theory for state estimation in robotics" Solà et al 
+* Source https://arxiv.org/abs/1812.01537
+*/
 inline Vector6d se3_RTtoVec6d(Eigen::Affine3d RT) {
     Vector6d pose;
     Eigen::Vector3d w = log_so3(RT.linear());
@@ -178,6 +213,12 @@ inline Vector6d se3_RTtoVec6d(Eigen::Affine3d RT) {
     return pose;
 }
 
+/*!
+* @brief Compute the Exponential of the SO(3)xT(3) composite manifold
+*
+* From "A micro Lie theory for state estimation in robotics" Solà et al 
+* Source https://arxiv.org/abs/1812.01537
+*/
 inline Eigen::Affine3d se3_Vec6dtoRT(Vector6d pose) {
     Eigen::Affine3d RT;
     Eigen::Vector3d w, t;
@@ -188,13 +229,12 @@ inline Eigen::Affine3d se3_Vec6dtoRT(Vector6d pose) {
     return RT;
 }
 
-inline Eigen::Affine3d se3_Vec3dtoRT(Eigen::Vector3d p3d) {
-    Eigen::Affine3d RT;
-    RT.linear()      = Eigen::Matrix3d::Identity();
-    RT.translation() = p3d;
-    return RT;
-}
-
+/*!
+* @brief Compute the Exponential of the SO(3)xT(3) composite manifold from a double*
+*
+* From "A micro Lie theory for state estimation in robotics" Solà et al 
+* Source https://arxiv.org/abs/1812.01537
+*/
 inline Eigen::Affine3d se3_doubleVec6dtoRT(const double *pose) {
     Eigen::Affine3d RT;
     RT.linear() = exp_so3(Eigen::Vector3d(pose[0], pose[1], pose[2]));
@@ -202,6 +242,10 @@ inline Eigen::Affine3d se3_doubleVec6dtoRT(const double *pose) {
     return RT;
 }
 
+
+/*!
+* @brief Turns a point 3d in double* into an Affine3d with Id rotation
+*/
 inline Eigen::Affine3d se3_doubleVec3dtoRT(const double *p3d) {
     Eigen::Affine3d RT;
     RT.linear() = Eigen::Matrix3d::Identity();
@@ -209,6 +253,12 @@ inline Eigen::Affine3d se3_doubleVec3dtoRT(const double *p3d) {
     return RT;
 }
 
+/*!
+* @brief Compute the logarithm of the SO(3)xT(3) composite manifold from a double*
+*
+* From "A micro Lie theory for state estimation in robotics" Solà et al 
+* Source https://arxiv.org/abs/1812.01537
+*/
 template <typename T> inline Eigen::Transform<T, 3, 4> se3_doubleVec6dtoRT(const T *pose) {
     Eigen::Transform<T, 3, 4> RT;
     // Eigen::Affine3d RT;
@@ -221,45 +271,9 @@ template <typename T> inline Eigen::Transform<T, 3, 4> se3_doubleVec6dtoRT(const
     return RT;
 }
 
-inline double getVectorAngle(Eigen::Vector2d pt_end, Eigen::Vector2d pt_start) {
-    double angle = fmod(atan2((pt_end(1) - pt_start(1)), (pt_end(0) - pt_start(0))), 2 * M_PI);
-    if (angle < 0.0)
-        angle += 2.0 * M_PI;
-    return angle;
-}
-
-inline double getDeltaAngle(double orientation, double orientation_reproj) {
-
-    double residu = fmod(orientation - orientation_reproj, M_PI);
-    if (residu > M_PI / 2.)
-        residu += -M_PI;
-    if (residu < -M_PI / 2.)
-        residu += M_PI;
-    return residu;
-}
-
-inline Eigen::Vector3d getColorSubpix(const cv::Mat &img, Eigen::Vector2d pt) {
-
-    // bilinear interpolation
-    double dx = pt.x() - (int)pt.x();
-    double dy = pt.y() - (int)pt.y();
-
-    double weight_tl = (1.0 - dx) * (1.0 - dy);
-    double weight_tr = (dx) * (1.0 - dy);
-    double weight_bl = (1.0 - dx) * (dy);
-    double weight_br = (dx) * (dy);
-
-    std::vector<double> interp_cols(3, 0);
-    for (uint i = 0; i < (uint)(img.channels()); ++i)
-        interp_cols.at(i) = weight_tl * img.at<uint>((int)pt.x(), (int)pt.y()) +
-                            weight_tr * img.at<uint>((int)pt.x() + 1, (int)pt.y()) +
-                            weight_bl * img.at<uint>((int)pt.x(), (int)pt.y() + 1) +
-                            weight_br * img.at<uint>((int)pt.x() + 1, (int)pt.y() + 1);
-
-    // if grayscale image only output(0) is set, other are 0
-    return Eigen::Vector3d(interp_cols.at(0), interp_cols.at(1), interp_cols.at(2));
-}
-
+/*!
+* @brief Get the angle formed by the segments p-p1 and p-p2
+*/
 inline double getAngle(Eigen::Vector3d p, Eigen::Vector3d p1, Eigen::Vector3d p2) {
     Eigen::Vector3d u1 = p - p1;
     Eigen::Vector3d u2 = p - p2;
@@ -267,8 +281,11 @@ inline double getAngle(Eigen::Vector3d p, Eigen::Vector3d p1, Eigen::Vector3d p2
     return std::acos(u1.dot(u2) / (u1.norm() * u2.norm()));
 }
 
-// Check if a point is in a triangle with the barycentric technique
-// cf. https://blackpawn.com/texts/pointinpoly/
+/*!
+* @brief Check if a point is in a triangle with the barycentric technique
+*
+* Source https://blackpawn.com/texts/pointinpoly/
+*/
 template <typename Derived = Eigen::VectorXd> inline bool pointInTriangle(Derived pt, std::vector<Derived> triangle) {
     // Compute vectors
     Derived v0 = triangle.at(2) - triangle.at(0);
@@ -291,8 +308,11 @@ template <typename Derived = Eigen::VectorXd> inline bool pointInTriangle(Derive
     return (u >= 0) && (v >= 0) && (u + v < 1);
 }
 
-// According to CGAL library 
-// Cf. Principal Component Analysis in CGAL, Gupta et al
+/*!
+* @brief Computes the covariance of a 2D triangle according to CGAL library 
+*
+* Source "Principal Component Analysis in CGAL" Gupta et al
+*/
 inline Eigen::Matrix2d cov2dTriangle(std::vector<Eigen::Vector2d> triangle) {
 
     // Compute transformation
@@ -312,6 +332,9 @@ inline Eigen::Matrix2d cov2dTriangle(std::vector<Eigen::Vector2d> triangle) {
     return M;
 }
 
+/*!
+* @brief Compute the area of a 2D triangle
+*/
 inline double areaTriangle(std::vector<Eigen::Vector2d> triangle) {
 
     Eigen::Vector2d x0 = triangle.at(0);
@@ -322,8 +345,6 @@ inline double areaTriangle(std::vector<Eigen::Vector2d> triangle) {
     return At.determinant() / 2;
 
 }
-
-
 
 inline Eigen::MatrixXd J_norm(Eigen::Vector3d X){
     return X.transpose()/X.norm();

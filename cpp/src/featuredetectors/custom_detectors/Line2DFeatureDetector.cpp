@@ -18,7 +18,7 @@ void Line2DFeatureDetector::init() {
     _elsed             = std::make_shared<upm::ELSED>(_params);
 }
 
-double Line2DFeatureDetector::getDist(const cv::Mat &desc1, const cv::Mat &desc2) const {
+double Line2DFeatureDetector::computeDist(const cv::Mat &desc1, const cv::Mat &desc2) const {
     // std::cout << "dist = " << cv::norm(desc1, desc2, this->getDefaultNorm()) << std::endl;
     return cv::norm(desc1, desc2, this->getDefaultNorm());
 }

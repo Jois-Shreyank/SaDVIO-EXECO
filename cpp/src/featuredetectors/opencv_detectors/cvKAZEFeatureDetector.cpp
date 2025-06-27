@@ -15,7 +15,7 @@ void cvKAZEFeatureDetector::init()
     _descriptor = _detector;
 }
 
-double cvKAZEFeatureDetector::getDist(const cv::Mat &desc1, const cv::Mat &desc2) const
+double cvKAZEFeatureDetector::computeDist(const cv::Mat &desc1, const cv::Mat &desc2) const
 {
 
     return cv::norm(desc1, desc2, _detector->defaultNorm());

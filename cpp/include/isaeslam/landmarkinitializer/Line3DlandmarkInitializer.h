@@ -7,17 +7,17 @@
 
 namespace isae {
 
+/*!
+ * @brief Class for initializing 3D line landmarks.
+ */
 class Line3DLandmarkInitializer : public ALandmarkInitializer {
   public:
-    Line3DLandmarkInitializer(uint nb_requiered_ldmk)
-        : ALandmarkInitializer(nb_requiered_ldmk) {}
+    Line3DLandmarkInitializer() = default;
 
   protected:
     bool initLandmark(std::vector<std::shared_ptr<AFeature>> features, std::shared_ptr<ALandmark> &landmark) override;
     bool initLandmarkWithDepth(std::vector<std::shared_ptr<AFeature>> features,
                                std::shared_ptr<ALandmark> &landmark) override;
-
-    // must link f or f1 & f2 to the landmark
     std::shared_ptr<ALandmark> createNewLandmark(std::shared_ptr<AFeature> f) override;
 
     static Eigen::Vector3d processOrientation(std::vector<Eigen::Vector3d> Ns);

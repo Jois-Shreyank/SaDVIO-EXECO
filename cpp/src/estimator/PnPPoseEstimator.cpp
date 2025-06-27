@@ -82,10 +82,7 @@ bool PnPPoseEstimator::estimateTransformBetween(const std::shared_ptr<Frame> &fr
                        inliers,
                        cv::SOLVEPNP_P3P);
 
-    if (inliers.rows < 5)
-        return false;
-
-    // Relaunch solvepnp with the inliers only using first approx
+    // Save inliers matches
     use_extrinsic_guess = true;
     std::vector<cv::Point2d> in_p2d_vector;
     in_p2d_vector.reserve(p2d_vector.size());
@@ -99,6 +96,18 @@ bool PnPPoseEstimator::estimateTransformBetween(const std::shared_ptr<Frame> &fr
         in_p3d_vector.push_back(p3d_vector.at(inliers.at<int>(i)));
         inliers_matches.push_back(init_matches.at(inliers.at<int>(i)));
     }
+
+    // Update the matches passed as reference
+    matches = inliers_matches;
+    for (auto &m : noninit_matches) {
+        matches.push_back(m);
+    }
+
+    if (inliers.rows < 5) {
+        return false;
+    }
+
+    // Relaunch solvepnp with the inliers only using first approx
     cv::solvePnP(in_p3d_vector, in_p2d_vector, K, D, rvec, tvec, use_extrinsic_guess, cv::SOLVEPNP_ITERATIVE);
 
     // Get covariance matrix of rotation and translation
@@ -107,6 +116,10 @@ bool PnPPoseEstimator::estimateTransformBetween(const std::shared_ptr<Frame> &fr
     cv::projectPoints(p3d_vector, rvec, tvec, K, D, p, J);
     cv::Mat Sigma = cv::Mat(J.t() * J, cv::Rect(0,0,6,6)).inv();
     cv::cv2eigen(Sigma, covdT);
+
+    // If the covariance is not valid, return false
+    if (covdT.trace() > 1e3)
+        return false;
 
     // Store the resulting pose of F2-Cam1 in F1-Cam1 frame
     cv::Mat Rcv;
@@ -123,11 +136,6 @@ bool PnPPoseEstimator::estimateTransformBetween(const std::shared_ptr<Frame> &fr
     T_cam2_cam1.translation() = t_cam2_cam1;
     dT                        = T_cam1_f1.inverse() * T_cam2_cam1.inverse() * T_cam2_f2;
 
-    // Update the matches passed as reference
-    matches = inliers_matches;
-    for (auto &m : noninit_matches) {
-        matches.push_back(m);
-    }
     return true;
 }
 

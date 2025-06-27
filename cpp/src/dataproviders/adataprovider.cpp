@@ -7,7 +7,7 @@ namespace isae {
 ADataProvider::ADataProvider(std::string path, Config slam_config) {
     _slam_config    = slam_config;
     _nframes        = 0;
-    _img_process_dt = 0;
+
     this->loadSensorsConfiguration(path);
 }
 
@@ -75,6 +75,7 @@ void ADataProvider::loadIMUConfig(YAML::Node imu_node) {
     _imu_config->bacc_noise = imu_node["accelerometer_random_walk"].as<double>();
     _imu_config->bgyr_noise = imu_node["accelerometer_random_walk"].as<double>();
     _imu_config->rate_hz    = imu_node["rate_hz"].as<double>();
+    _imu_config->dt_imu_cam = imu_node["dt_imu_cam"].as<double>();
 }
 
 void ADataProvider::loadCamConfig(YAML::Node cam_node) {
@@ -432,9 +433,9 @@ bool EUROCGrabber::addNextFrame() {
         } else {
 
             std::string path_img0 = _folder_path + "/cam0/data/" +
-                                    std::to_string((unsigned long long)_cam0_timestamp_queue.front()) + ".png";
+                                    _cam0_filename_queue.front();
             std::string path_img1 = _folder_path + "/cam1/data/" +
-                                    std::to_string((unsigned long long)_cam1_timestamp_queue.front()) + ".png";
+                                    _cam1_filename_queue.front();
             cv::Mat img_left = cv::imread(path_img0, cv::IMREAD_GRAYSCALE);
             if (img_left.empty()) {
                 std::cerr << path_img0 << " not opened " << std::endl;

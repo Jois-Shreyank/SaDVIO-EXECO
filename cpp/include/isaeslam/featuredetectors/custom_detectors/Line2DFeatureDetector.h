@@ -26,7 +26,7 @@ class Line2DFeatureDetector : public ACustomFeatureDetector {
 
     void init() override;
 
-    double getDist(const cv::Mat &desc1, const cv::Mat &desc2) const override;
+    double computeDist(const cv::Mat &desc1, const cv::Mat &desc2) const override;
 
   private:
     cv::line_descriptor::KeyLine MakeKeyLine(cv::Point2f start_pts, cv::Point2f end_pts, size_t cols);
@@ -65,4 +65,4 @@ class Line2DFeatureDetector : public ACustomFeatureDetector {
 
 } // namespace isae
 
-#endif // EDGELETFEATUREDETECTOR_H
+#endif // LINE2DFEATUREDETECTOR_H

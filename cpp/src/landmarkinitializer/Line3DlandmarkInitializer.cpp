@@ -59,9 +59,7 @@ bool Line3DLandmarkInitializer::initLandmark(std::vector<std::shared_ptr<isae::A
     landmark = std::shared_ptr<Line3D>(new Line3D());
 
     // Set Landmark state
-    double scale = (start-end).norm();
     landmark->init(T_w_lmk, features);
-    landmark->setScale(Eigen::Vector3d(scale,scale,scale));
 
     // Check for landmark reprojection error
     landmark->sanityCheck();
@@ -73,10 +71,6 @@ bool Line3DLandmarkInitializer::initLandmark(std::vector<std::shared_ptr<isae::A
 bool Line3DLandmarkInitializer::initLandmarkWithDepth(std::vector<std::shared_ptr<AFeature> > features, std::shared_ptr<ALandmark> &landmark){
 
     std::vector<std::vector<Eigen::Vector3d>> all_p3ds;
-    for(auto f: features) {
-        std::vector<Eigen::Vector3d> p3ds = f->getSensor()->getP3Dcam(f);
-        all_p3ds.push_back(p3ds);
-    }
 
     Eigen::Vector3d position, direction;
     for(auto p3ds : all_p3ds) {
@@ -92,11 +86,6 @@ bool Line3DLandmarkInitializer::initLandmarkWithDepth(std::vector<std::shared_pt
 
     landmark = std::shared_ptr<Line3D>(new Line3D());
     landmark->init(T_w_lmk, features);
-
-    double scale = 0.;
-    for (auto f : features)
-        scale = std::max(scale, (f->getPoints().at(0)-f->getPoints().at(1)).norm());
-    landmark->setScale(Eigen::Vector3d(scale,scale,scale));
 
     return true;
 }

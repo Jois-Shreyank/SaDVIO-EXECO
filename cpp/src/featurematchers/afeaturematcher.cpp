@@ -1,5 +1,4 @@
 #include "isaeslam/featurematchers/afeaturematcher.h"
-#include "isaeslam/data/features/Edgelet2D.h"
 #include "utilities/geometry.h"
 
 namespace isae {
@@ -42,7 +41,7 @@ void AFeatureMatcher::getPossibleMatchesBetween(const std::vector<std::shared_pt
             }
 
             // Check the score
-            double score = _detector->getDist(f->getDescriptor(), f2->getDescriptor());
+            double score = _detector->computeDist(f->getDescriptor(), f2->getDescriptor());
             if (score < best_dist1) {
                 best_dist2 = best_dist1;
                 best_dist1 = score;
@@ -151,7 +150,7 @@ uint AFeatureMatcher::match(std::vector<std::shared_ptr<AFeature>> &features1,
 }
 
 uint AFeatureMatcher::ldmk_match(std::shared_ptr<ImageSensor> &sensor1,
-                                 vec_shared<ALandmark> &ldmks,
+                                 std::vector<std::shared_ptr<ALandmark>> &ldmks,
                                  int searchAreaWidth,
                                  int searchAreaHeight) {
     // For each landmark to match, try to find a feature close
@@ -170,7 +169,7 @@ uint AFeatureMatcher::ldmk_match(std::shared_ptr<ImageSensor> &sensor1,
         if (already_in) 
             continue;
 
-        std::string label = lmk->getLandmarkLabel();
+        std::string label = lmk->_label;
 
         // Ignore if it has prior, is not init or is an outlier
         if (lmk->hasPrior() || !lmk->isInitialized() || lmk->isOutlier())
@@ -178,7 +177,7 @@ uint AFeatureMatcher::ldmk_match(std::shared_ptr<ImageSensor> &sensor1,
 
         // Project the landmark in the current sensor
         std::vector<Eigen::Vector2d> p2ds;
-        if (!sensor1->project(lmk->getPose(), lmk->getModel(), lmk->getScale(), p2ds))
+        if (!sensor1->project(lmk->getPose(), lmk->getModel(), p2ds))
             continue;
 
         // For all features of this type, try to find one close to the reprojection
@@ -216,7 +215,7 @@ uint AFeatureMatcher::ldmk_match(std::shared_ptr<ImageSensor> &sensor1,
                 if (f->getLandmark().lock())
                     continue;
 
-                double score = _detector->getDist(f->getDescriptor(), lmk->getDescriptor());
+                double score = _detector->computeDist(f->getDescriptor(), lmk->getDescriptor());
 
                 if (score < min1) {
                     min2    = min1;

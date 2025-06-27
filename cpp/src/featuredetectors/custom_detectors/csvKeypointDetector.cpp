@@ -61,7 +61,7 @@ void CsvKeypointDetector::customDetectAndCompute(const cv::Mat &img,
 
 void CsvKeypointDetector::computeDescriptor(const cv::Mat &img, std::vector<std::shared_ptr<AFeature>> &features) {}
 
-double CsvKeypointDetector::getDist(const cv::Mat &desc1, const cv::Mat &desc2) const
+double CsvKeypointDetector::computeDist(const cv::Mat &desc1, const cv::Mat &desc2) const
 {
 
     return cv::norm(desc1, desc2, cv::NORM_L2);

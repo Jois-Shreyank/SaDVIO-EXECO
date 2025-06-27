@@ -84,7 +84,7 @@ class AssociationTest : public testing::Test {
             _sensor1->addFeature("pointxd", feat1);
 
             // Create landmark
-            vec_shared<AFeature> feats;
+            std::vector<std::shared_ptr<AFeature>> feats;
             feats.push_back(feat0);
             std::shared_ptr<Point3D> lmk = std::shared_ptr<Point3D>(new Point3D());
             lmk->init(rand_T, feats); // NOTE : init is necessary to use make shared from this
@@ -101,7 +101,7 @@ class AssociationTest : public testing::Test {
 
     Eigen::Matrix3d _K;
     std::vector<Eigen::Vector3d> _3d_points;
-    vec_shared<ALandmark> _lmks;
+    std::vector<std::shared_ptr<ALandmark>> _lmks;
     std::unordered_map<std::shared_ptr<ALandmark>, cv::Mat> _map_lmk_desc;
     typed_vec_match _matches;
 };

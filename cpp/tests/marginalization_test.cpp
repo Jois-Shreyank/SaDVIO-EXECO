@@ -95,10 +95,10 @@ class MarginalizationTest : public testing::Test {
 
         // Projections and add features for lmk 0
         std::vector<Eigen::Vector2d> projection_0_0_l;
-        _sensor0l->project(_lmk_0->getPose(), _lmk_0->getModel(), Eigen::Vector3d(1, 1, 1), projection_0_0_l);
+        _sensor0l->project(_lmk_0->getPose(), _lmk_0->getModel(), projection_0_0_l);
 
         std::vector<Eigen::Vector2d> projection_0_0_r;
-        _sensor0r->project(_lmk_0->getPose(), _lmk_0->getModel(), Eigen::Vector3d(1, 1, 1), projection_0_0_r);
+        _sensor0r->project(_lmk_0->getPose(), _lmk_0->getModel(), projection_0_0_r);
 
         _feat_0_0_l = std::shared_ptr<Point2D>(new Point2D(projection_0_0_l));
         _lmk_0->addFeature(_feat_0_0_l);
@@ -110,16 +110,16 @@ class MarginalizationTest : public testing::Test {
 
         // Projections and add features for lmk 1
         std::vector<Eigen::Vector2d> projection_0_1_l;
-        _sensor0l->project(_lmk_1->getPose(), _lmk_1->getModel(), Eigen::Vector3d(1, 1, 1), projection_0_1_l);
+        _sensor0l->project(_lmk_1->getPose(), _lmk_1->getModel(), projection_0_1_l);
 
         std::vector<Eigen::Vector2d> projection_0_1_r;
-        _sensor0r->project(_lmk_1->getPose(), _lmk_1->getModel(), Eigen::Vector3d(1, 1, 1), projection_0_1_r);
+        _sensor0r->project(_lmk_1->getPose(), _lmk_1->getModel(), projection_0_1_r);
 
         std::vector<Eigen::Vector2d> projection_1_1_l;
-        _sensor1l->project(_lmk_1->getPose(), _lmk_1->getModel(), Eigen::Vector3d(1, 1, 1), projection_1_1_l);
+        _sensor1l->project(_lmk_1->getPose(), _lmk_1->getModel(), projection_1_1_l);
 
         std::vector<Eigen::Vector2d> projection_1_1_r;
-        _sensor1r->project(_lmk_1->getPose(), _lmk_1->getModel(), Eigen::Vector3d(1, 1, 1), projection_1_1_r);
+        _sensor1r->project(_lmk_1->getPose(), _lmk_1->getModel(), projection_1_1_r);
 
         _feat_0_1_l = std::shared_ptr<Point2D>(new Point2D(projection_0_1_l));
         _lmk_1->addFeature(_feat_0_1_l);
@@ -139,16 +139,16 @@ class MarginalizationTest : public testing::Test {
 
         // Projections and add features for lmk 2
         std::vector<Eigen::Vector2d> projection_0_2_l;
-        _sensor0l->project(_lmk_2->getPose(), _lmk_2->getModel(), Eigen::Vector3d(1, 1, 1), projection_0_2_l);
+        _sensor0l->project(_lmk_2->getPose(), _lmk_2->getModel(), projection_0_2_l);
 
         std::vector<Eigen::Vector2d> projection_0_2_r;
-        _sensor0r->project(_lmk_2->getPose(), _lmk_2->getModel(), Eigen::Vector3d(1, 1, 1), projection_0_2_r);
+        _sensor0r->project(_lmk_2->getPose(), _lmk_2->getModel(), projection_0_2_r);
 
         std::vector<Eigen::Vector2d> projection_1_2_l;
-        _sensor1l->project(_lmk_2->getPose(), _lmk_2->getModel(), Eigen::Vector3d(1, 1, 1), projection_1_2_l);
+        _sensor1l->project(_lmk_2->getPose(), _lmk_2->getModel(), projection_1_2_l);
 
         std::vector<Eigen::Vector2d> projection_1_2_r;
-        _sensor1r->project(_lmk_2->getPose(), _lmk_2->getModel(), Eigen::Vector3d(1, 1, 1), projection_1_2_r);
+        _sensor1r->project(_lmk_2->getPose(), _lmk_2->getModel(), projection_1_2_r);
 
         _feat_0_2_l = std::shared_ptr<Point2D>(new Point2D(projection_0_2_l));
         _lmk_2->addFeature(_feat_0_2_l);
@@ -257,9 +257,9 @@ TEST_F(MarginalizationTest, margTest) {
 
                     // Add the reprojection factor in the marginalization scheme
                     std::cout << feature.lock()->getPoints().size() << std::endl;
-                    ceres::CostFunction *cost_fct = new BundleAdjustmentCERESAnalytic::ReprojectionErrCeres_pointxd_dx(
+                    ceres::CostFunction *cost_fct = new ReprojectionErrCeres_pointxd_dx(
                         feature.lock()->getPoints().at(0), feature.lock()->getSensor(), lmk->getPose());
-                    _marg.addMarginalizationBlock(
+                    _marg._marginalization_blocks.push_back(
                         std::make_shared<MarginalizationBlockInfo>(cost_fct, parameter_idx, parameter_blocks));
                 }
             }
@@ -287,9 +287,9 @@ TEST_F(MarginalizationTest, margTest) {
                     parameter_blocks.push_back(_map_lmk_ptpar.at(lmk).values());
 
                     // Add the reprojection factor in the marginalization scheme
-                    ceres::CostFunction *cost_fct = new BundleAdjustmentCERESAnalytic::ReprojectionErrCeres_pointxd_dx(
+                    ceres::CostFunction *cost_fct = new ReprojectionErrCeres_pointxd_dx(
                         feature.lock()->getPoints().at(0), feature.lock()->getSensor(), lmk->getPose());
-                    _marg.addMarginalizationBlock(
+                    _marg._marginalization_blocks.push_back(
                         std::make_shared<MarginalizationBlockInfo>(cost_fct, parameter_idx, parameter_blocks));
                 }
             }

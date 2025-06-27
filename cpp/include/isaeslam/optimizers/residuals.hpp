@@ -7,6 +7,9 @@
 
 namespace isae {
 
+/*!
+ * @brief A cost function to impose a constraint on 2D motion
+ */
 class Motion2DFactor : public ceres::SizedCostFunction<6, 6, 6> {
   public:
     Motion2DFactor(const Eigen::Vector2d motion_2d, const Eigen::MatrixXd sqrt_inf, const double dt)
@@ -60,13 +63,16 @@ class Motion2DFactor : public ceres::SizedCostFunction<6, 6, 6> {
         return true;
     }
 
-    Eigen::Vector2d _motion_2d;
-    Eigen::MatrixXd _sqrt_inf;
-    double _dt;
-    double _dx;
-    double _dtheta;
+    Eigen::Vector2d _motion_2d; //!< The velocity on the 2D plane
+    Eigen::MatrixXd _sqrt_inf;  //!< The square root informatino matrix of the measurement
+    double _dt;                 //!< The integration time
+    double _dx;                 //!< The forward displacement
+    double _dtheta;             //!< The angular displacement
 };
 
+/*!
+ * @brief A cost function for 6DoF relative pose constraint, the parameters are the delta pose of the two related poses
+ */
 class Relative6DPose : public ceres::SizedCostFunction<6, 6, 6> {
   public:
     Relative6DPose(const Eigen::Affine3d T_w_a,
@@ -126,10 +132,16 @@ class Relative6DPose : public ceres::SizedCostFunction<6, 6, 6> {
         return true;
     }
 
-    Eigen::Affine3d _T_w_a, _T_w_b, _T_a_b_prior;
-    Eigen::MatrixXd _sqrt_inf;
+    Eigen::Affine3d _T_w_a, _T_w_b, _T_a_b_prior; //!< All the poses needed
+    Eigen::MatrixXd _sqrt_inf;                    //!< Square root of the information matrix
 };
 
+/*!
+ * @brief A cost function for IMU pre-integration factor, parameters are delta updates
+ *
+ * The expression and the analytical jacobians are inspired by on "On-Manifold Preintegration for Real-Time
+ * Visual-Inertial Odometry" by Forster et al. Source: https://arxiv.org/abs/1512.02363
+ */
 class IMUFactor : public ceres::SizedCostFunction<9, 6, 6, 3, 3, 3, 3> {
   public:
     IMUFactor(const std::shared_ptr<IMU> imu_i, const std::shared_ptr<IMU> imu_j) : _imu_i(imu_i), _imu_j(imu_j) {}
@@ -240,10 +252,12 @@ class IMUFactor : public ceres::SizedCostFunction<9, 6, 6, 3, 3, 3, 3> {
         return true;
     }
 
-    std::shared_ptr<IMU> _imu_i;
-    std::shared_ptr<IMU> _imu_j;
+    std::shared_ptr<IMU> _imu_i, _imu_j; //!< The first and the last IMU of the pre-integration
 };
 
+/*!
+ * @brief IMU bias cost function that takes into account random walk behaviour
+ */
 class IMUBiasFactor : public ceres::SizedCostFunction<6, 3, 3, 3, 3> {
 
   public:
@@ -295,10 +309,13 @@ class IMUBiasFactor : public ceres::SizedCostFunction<6, 3, 3, 3, 3> {
         return true;
     }
 
-    std::shared_ptr<IMU> _imu_i;
-    std::shared_ptr<IMU> _imu_j;
+    std::shared_ptr<IMU> _imu_i, _imu_j; //!< The first and the last IMU of the pre-integration
 };
 
+/*!
+ * @brief Pre integration IMU factor for initialization, the parameters optimized are: scale, roll, pitch, velocities
+ * and biases
+ */
 class IMUFactorInit : public ceres::SizedCostFunction<9, 2, 3, 3, 3, 3, 1> {
   public:
     IMUFactorInit(const std::shared_ptr<IMU> imu_i, const std::shared_ptr<IMU> imu_j) : _imu_i(imu_i), _imu_j(imu_j) {}
@@ -395,9 +412,9 @@ class IMUFactorInit : public ceres::SizedCostFunction<9, 2, 3, 3, 3, 3, 1> {
             // Jacobian wrt the scale
             if (jacobians[5] != NULL) {
                 Eigen::Map<Eigen::Matrix<double, 9, 1>> J_scale(jacobians[5]);
-                J_scale                   = Eigen::Matrix<double, 9, 1>::Zero();
-                J_scale.block(6, 0, 3, 1) = T_fi_w.rotation() * R_w_i *
-                                            (T_fj_w.inverse().translation() - T_fi_w.inverse().translation());
+                J_scale = Eigen::Matrix<double, 9, 1>::Zero();
+                J_scale.block(6, 0, 3, 1) =
+                    T_fi_w.rotation() * R_w_i * (T_fj_w.inverse().translation() - T_fi_w.inverse().translation());
                 J_scale = inf_sqrt * J_scale;
             }
         }
@@ -405,10 +422,12 @@ class IMUFactorInit : public ceres::SizedCostFunction<9, 2, 3, 3, 3, 3, 1> {
         return true;
     }
 
-    std::shared_ptr<IMU> _imu_i;
-    std::shared_ptr<IMU> _imu_j;
+    std::shared_ptr<IMU> _imu_i, _imu_j; //!< The first and the last IMU of the pre-integration
 };
 
+/*!
+ * @brief An experimental IMU factor refining only roll, pitch, biases and scale
+ */
 class IMUFactorInitBis : public ceres::SizedCostFunction<9, 2, 3, 3, 1> {
   public:
     IMUFactorInitBis(const std::shared_ptr<IMU> imu_i, const std::shared_ptr<IMU> imu_j)
@@ -456,13 +475,15 @@ class IMUFactorInitBis : public ceres::SizedCostFunction<9, 2, 3, 3, 1> {
             if (jacobians[0] != NULL) {
                 Eigen::Map<Eigen::Matrix<double, 9, 2, Eigen::RowMajor>> J_Rwi(jacobians[0]);
                 J_Rwi                   = Eigen::Matrix<double, 9, 2, Eigen::RowMajor>::Zero();
-                J_Rwi.block(3, 0, 3, 2) = -T_fi_w.rotation() * R_w_i * geometry::skewMatrix(std::exp(lambda)* (v_j - v_i) - g * dtij) *
+                J_Rwi.block(3, 0, 3, 2) = -T_fi_w.rotation() * R_w_i *
+                                          geometry::skewMatrix(std::exp(lambda) * (v_j - v_i) - g * dtij) *
                                           geometry::so3_rightJacobian(w_w_i).block(0, 0, 3, 2);
-                J_Rwi.block(6, 0, 3, 2) = -T_fi_w.rotation() * R_w_i *
-                                          geometry::skewMatrix(std::exp(lambda) * (T_fj_w.inverse().translation() -
-                                                                                   T_fi_w.inverse().translation() -
-                                                               v_i * dtij) - 0.5 * g * dtij * dtij) *
-                                          geometry::so3_rightJacobian(w_w_i).block(0, 0, 3, 2);
+                J_Rwi.block(6, 0, 3, 2) =
+                    -T_fi_w.rotation() * R_w_i *
+                    geometry::skewMatrix(std::exp(lambda) * (T_fj_w.inverse().translation() -
+                                                             T_fi_w.inverse().translation() - v_i * dtij) -
+                                         0.5 * g * dtij * dtij) *
+                    geometry::so3_rightJacobian(w_w_i).block(0, 0, 3, 2);
                 J_Rwi = inf_sqrt * J_Rwi;
             }
 
@@ -492,17 +513,20 @@ class IMUFactorInitBis : public ceres::SizedCostFunction<9, 2, 3, 3, 1> {
                 J_scale                   = Eigen::Matrix<double, 9, 1>::Zero();
                 J_scale.block(3, 0, 3, 1) = T_fi_w.rotation() * R_w_i * (v_j - v_i);
                 J_scale.block(6, 0, 3, 1) =
-                    T_fi_w.rotation() * R_w_i * (T_fj_w.inverse().translation() - T_fi_w.inverse().translation() - v_i * dtij);
+                    T_fi_w.rotation() * R_w_i *
+                    (T_fj_w.inverse().translation() - T_fi_w.inverse().translation() - v_i * dtij);
             }
         }
 
         return true;
     }
 
-    std::shared_ptr<IMU> _imu_i;
-    std::shared_ptr<IMU> _imu_j;
+    std::shared_ptr<IMU> _imu_i, _imu_j; //!< The first and the last IMU of the pre-integration
 };
 
+/*!
+ * @brief A factor for absolute 3D position constraint on a punctual landmark
+ */
 class Landmark3DPrior : public ceres::SizedCostFunction<3, 3> {
   public:
     Landmark3DPrior(const Eigen::Vector3d prior, const Eigen::Vector3d lmk, const Eigen::Matrix3d sqrt_inf)
@@ -521,10 +545,13 @@ class Landmark3DPrior : public ceres::SizedCostFunction<3, 3> {
         return true;
     }
 
-    Eigen::Vector3d _prior, _lmk;
-    Eigen::Matrix3d _sqrt_inf;
+    Eigen::Vector3d _prior, _lmk; //!< Prior and current 3D positions
+    Eigen::Matrix3d _sqrt_inf;    //!< Square root information matrix
 };
 
+/*!
+ * @brief 3D relative translation factor between 3D punctual landmarks
+ */
 class LandmarkToLandmarkFactor : public ceres::SizedCostFunction<3, 3, 3> {
   public:
     LandmarkToLandmarkFactor(const Eigen::Vector3d delta,
@@ -554,10 +581,13 @@ class LandmarkToLandmarkFactor : public ceres::SizedCostFunction<3, 3, 3> {
 
         return true;
     }
-    Eigen::Vector3d _delta, _lmk0, _lmk1;
-    Eigen::Matrix3d _sqrt_inf;
+    Eigen::Vector3d _delta, _lmk0, _lmk1; //!< Prior on relative translation and positions of the landmarks
+    Eigen::Matrix3d _sqrt_inf;            //!< Square root information matrix
 };
 
+/*!
+ * @brief Relative 3D translation between a 6DoF frame and a punctual landmark
+ */
 class PoseToLandmarkFactor : public ceres::SizedCostFunction<3, 6, 3> {
   public:
     PoseToLandmarkFactor(const Eigen::Vector3d delta,
@@ -593,11 +623,14 @@ class PoseToLandmarkFactor : public ceres::SizedCostFunction<3, 6, 3> {
 
         return true;
     }
-    Eigen::Vector3d _delta, _t_w_lmk;
-    Eigen::Affine3d _T_f_w;
-    Eigen::Matrix3d _sqrt_inf;
+    Eigen::Vector3d _delta, _t_w_lmk; //!< The prior delta and the landmark 3D position
+    Eigen::Affine3d _T_f_w;           //!< The pose of the linked frame
+    Eigen::Matrix3d _sqrt_inf;        //!< Square root information matrix
 };
 
+/*!
+ * @brief Absolute 6DoF pose prior factor
+ */
 class PosePriordx : public ceres::SizedCostFunction<6, 6> {
   public:
     PosePriordx(const Eigen::Affine3d T, const Eigen::Affine3d T_prior, const Eigen::MatrixXd sqrt_inf)
@@ -627,10 +660,13 @@ class PosePriordx : public ceres::SizedCostFunction<6, 6> {
         return true;
     }
 
-    Eigen::Affine3d _T, _T_prior;
-    Eigen::MatrixXd _sqrt_inf;
+    Eigen::Affine3d _T, _T_prior; //!< The 6DoF pose prior and its current value
+    Eigen::MatrixXd _sqrt_inf;    //!< Square root information matrix
 };
 
+/*!
+ * @brief An absolute prior on an Inertial state, including pose, velocity and biases
+ */
 class IMUPriordx : public ceres::SizedCostFunction<15, 6, 3, 3, 3> {
   public:
     IMUPriordx(const Eigen::Affine3d T,
@@ -694,11 +730,14 @@ class IMUPriordx : public ceres::SizedCostFunction<15, 6, 3, 3, 3> {
         return true;
     }
 
-    Eigen::Affine3d _T, _T_prior;
-    Eigen::Vector3d _v, _v_prior, _ba, _ba_prior, _bg, _bg_prior;
-    Eigen::MatrixXd _sqrt_inf;
+    Eigen::Affine3d _T, _T_prior;                                 //!< Pose prior and current value
+    Eigen::Vector3d _v, _v_prior, _ba, _ba_prior, _bg, _bg_prior; //!< Prior and current value for velocity and biases
+    Eigen::MatrixXd _sqrt_inf;                                    //!< Square root information matrix
 };
 
+/*!
+ * @brief Prior on a 1D parameter (e.g. scale)
+ */
 class scalePrior : public ceres::SizedCostFunction<1, 1> {
   public:
     scalePrior(const double sqrt_inf) : _sqrt_inf(sqrt_inf) {}
@@ -713,79 +752,8 @@ class scalePrior : public ceres::SizedCostFunction<1, 1> {
 
         return true;
     }
-    double _sqrt_inf;
+    double _sqrt_inf; //!< Square root information matrix
 };
-
-//============================================================================================ linexd
-// "linexd" reprojection error
-inline bool linexdReprojectionError(const Eigen::Affine3d T_w_lmk,
-                                    const std::shared_ptr<AModel3d> model3d,
-                                    const Eigen::Vector3d &scale,
-                                    const Eigen::Affine3d &T_s_w,
-                                    const std::shared_ptr<ImageSensor> cam,
-                                    const std::vector<Eigen::Vector2d> &p2d,
-                                    double *residual) {
-
-    Eigen::Vector3d b0, b1;
-    b0 = cam->getRayCamera(p2d.at(0));
-    b1 = cam->getRayCamera(p2d.at(1));
-
-    Eigen::Affine3d T_s_lmk = T_s_w * T_w_lmk;
-
-    // Check plane coplanarity
-    Eigen::Vector3d n_obs, n_lmk;
-    n_obs = b0.cross(b1);
-    n_obs.normalize();
-    n_lmk = (T_s_lmk.translation().normalized()).cross(geometry::Rotation2directionVector(T_s_lmk.rotation()));
-
-    Eigen::Map<Eigen::Matrix<double, 1, 1>> res(residual);
-    res = (n_obs.transpose() * n_lmk);
-    return true;
-}
-
-// struct scaleFactor {
-
-//     scaleFactor(const Eigen::Vector3d b,
-//                 const Eigen::Vector3d bp,
-//                 const Eigen::Affine3d T_cam0_f,
-//                 const Eigen::Affine3d T_cam0_cam1)
-//         : _b(b), _bp(b), _T_cam0_f(T_cam0_f), _T_cam0_cam1(T_cam0_cam1) {}
-
-//     // Constant parameters used to process the residual
-//     const Eigen::Vector3d _b, _bp;
-//     const Eigen::Affine3d _T_cam0_f, _T_cam0_cam1;
-
-//     template <typename T> bool operator()(const T *const f_pose, const T *const fp_pose, T *residual) const {
-
-//         Eigen::Affine3d T_cam0_cam0p = _T_cam0_f * geometry::se3_doubleVec6dtoRT(f_pose) *
-//                                        geometry::se3_doubleVec6dtoRT(fp_pose).inverse() * _T_cam0_f.inverse();
-
-//         Eigen::Vector3d xA = T_cam0_cam0p.rotation() * _T_cam0_cam1.translation() - _T_cam0_cam1.translation();
-//         Eigen::Matrix3d A  = _T_cam0_cam1.rotation().transpose() * geometry::skewMatrix(xA) * T_cam0_cam0p.rotation()
-//         *
-//                             _T_cam0_cam1.rotation();
-//         Eigen::Matrix3d B = _T_cam0_cam1.rotation().transpose() * geometry::skewMatrix(T_cam0_cam0p.translation()) *
-//                             T_cam0_cam0p.rotation() * _T_cam0_cam1.rotation();
-
-//         double err = (_b.transpose() * A * _bp);
-//         err /= (_b.transpose() * B * _bp);
-//         err += 1;
-//         residual[0] = T(err);
-
-//         return true;
-//     }
-
-//     // Factory to hide the construction of the CostFunction object from the client code.
-//     static ceres::CostFunction *Create(const Eigen::Vector3d b,
-//                                        const Eigen::Vector3d bp,
-//                                        const Eigen::Affine3d T_cam0_f,
-//                                        const Eigen::Affine3d T_cam0_cam1) {
-//         return (new ceres::NumericDiffCostFunction<scaleFactor, ceres::FORWARD, 1, 6, 6>(
-//             new scaleFactor(b, bp, T_cam0_f, T_cam0_cam1)));
-//         // 6: dof first argument (f_pose), 6:dof second argument (fp_pose), 1: size of error
-//         // residual (residual)
-//     }
-// };
 
 } // namespace isae
 

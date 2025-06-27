@@ -145,8 +145,8 @@ void Marginalization::preMarginalize(std::shared_ptr<Frame> &frame0,
 void Marginalization::computeInformationAndGradient(std::vector<std::shared_ptr<MarginalizationBlockInfo>> blocks,
                                                     Eigen::MatrixXd &A,
                                                     Eigen::VectorXd &b) {
-    std::mutex mtx;
-    auto updateInfoMat = [&mtx, &A, &b](std::vector<std::shared_ptr<MarginalizationBlockInfo>> block_vector) {
+
+    auto updateInfoMat = [&A, &b](std::vector<std::shared_ptr<MarginalizationBlockInfo>> block_vector) {
         for (auto block : block_vector) {
             block->Evaluate();
 
@@ -169,7 +169,6 @@ void Marginalization::computeInformationAndGradient(std::vector<std::shared_ptr<
                         continue;
 
                     {
-                        mtx.lock();
                         if (i == j) {
                             A.block(idx_i, idx_j, size_i, size_j) += jacobian_i.transpose() * jacobian_j;
                         } else {
@@ -177,20 +176,15 @@ void Marginalization::computeInformationAndGradient(std::vector<std::shared_ptr<
                             A.block(idx_j, idx_i, size_j, size_i) =
                                 A.block(idx_i, idx_j, size_i, size_j).transpose().eval();
                         }
-                        mtx.unlock();
                     }
                 }
-                {
-                    mtx.lock();
-                    b.segment(idx_i, size_i) += jacobian_i.transpose() * block->_residuals;
-                    mtx.unlock();
-                }
+                { b.segment(idx_i, size_i) += jacobian_i.transpose() * block->_residuals; }
             }
         }
     };
 
     // Split the blocks in chunks
-    int n_thread = 4;
+    int n_thread = 1;
     std::vector<std::vector<std::shared_ptr<MarginalizationBlockInfo>>> thread_chunks;
     for (int i = 0; i < n_thread; i++) {
         std::vector<std::shared_ptr<MarginalizationBlockInfo>> block_vector;
@@ -239,13 +233,8 @@ bool Marginalization::computeSchurComplement() {
             .asDiagonal() *
         saes.eigenvectors().transpose();
 
-    Eigen::VectorXd bmm = b.segment(0, _m);
-    Eigen::MatrixXd Arm = A.block(_m, 0, _n, _m);
-    Eigen::MatrixXd Arr = A.block(_m, _m, _n, _n);
-    Eigen::VectorXd brr = b.segment(_m, _n);
-
-    _Ak = Arr - Arm * Amm_inv * Arm.transpose();
-    _bk = brr - Arm * Amm_inv * bmm;
+    _Ak = A.block(_m, _m, _n, _n) - A.block(_m, 0, _n, _m) * Amm_inv * A.block(_m, 0, _n, _m).transpose();
+    _bk = b.segment(_m, _n) - A.block(_m, 0, _n, _m) * Amm_inv * b.segment(0, _m);
 
     // Update the map index to apply the reduction
     for (auto lmk_idx : _map_lmk_idx) {
@@ -267,7 +256,7 @@ bool Marginalization::computeSchurComplement() {
 double Marginalization::computeEntropy(std::shared_ptr<ALandmark> lmk) {
 
     int size;
-    lmk->getLandmarkLabel() == "pointxd" ? size = 3 : size = 6;
+    lmk->_label == "pointxd" ? size = 3 : size = 6;
 
     Eigen::MatrixXd Sigma = _Sigma_k.block(_map_lmk_idx.at(lmk), _map_lmk_idx.at(lmk), size, size);
     return std::log(std::pow(2 * M_PI * M_E, size / 2) * Sigma.determinant());
@@ -277,10 +266,10 @@ double Marginalization::computeMutualInformation(std::shared_ptr<ALandmark> lmk_
 
     // Retrieve the size of the landmarks
     int size_i;
-    lmk_i->getLandmarkLabel() == "pointxd" ? size_i = 3 : size_i = 6;
+    lmk_i->_label == "pointxd" ? size_i = 3 : size_i = 6;
 
     int size_j;
-    lmk_j->getLandmarkLabel() == "pointxd" ? size_j = 3 : size_j = 6;
+    lmk_j->_label == "pointxd" ? size_j = 3 : size_j = 6;
 
     // Extract submatrices for MI calculation
     Eigen::MatrixXd Sigma_ii = _Sigma_k.block(_map_lmk_idx.at(lmk_i), _map_lmk_idx.at(lmk_i), size_i, size_i);
@@ -305,14 +294,12 @@ double Marginalization::computeOffDiag(std::shared_ptr<ALandmark> lmk_i, std::sh
 
     // Retrieve the size of the landmarks
     int size_i;
-    lmk_i->getLandmarkLabel() == "pointxd" ? size_i = 3 : size_i = 6;
+    lmk_i->_label == "pointxd" ? size_i = 3 : size_i = 6;
 
     int size_j;
-    lmk_j->getLandmarkLabel() == "pointxd" ? size_j = 3 : size_j = 6;
+    lmk_j->_label == "pointxd" ? size_j = 3 : size_j = 6;
 
-    Eigen::MatrixXd Lambda_ij = _Ak.block(_map_lmk_idx.at(lmk_i), _map_lmk_idx.at(lmk_j), size_i, size_j);
-
-    return std::abs(Lambda_ij.trace());
+    return std::abs(_Ak.block(_map_lmk_idx.at(lmk_i), _map_lmk_idx.at(lmk_j), size_i, size_j).trace());
 }
 
 void Marginalization::rankReveallingDecomposition(Eigen::MatrixXd A, Eigen::MatrixXd &U, Eigen::VectorXd &d) {
@@ -550,21 +537,29 @@ void Marginalization::preMarginalizeRelative(std::shared_ptr<Frame> &frame0, std
         // For all type of landmark
         for (auto lmk : tlmks.second) {
 
-            if (lmk->isOutlier() || !lmk->isInMap() || !lmk->isInitialized())
+            if (lmk->isOutlier() || !lmk->isInMap() || !lmk->isInitialized() || lmk->isResurected())
                 continue;
+            int num_cam          = 0;
+            bool is_linked_to_f1 = false;
             for (auto f : lmk->getFeatures()) {
 
-                // If the landmark is linked to frame1 it is marginalized
-                if (f.lock()->getSensor()->getFrame() == frame1) {
-
-                    _lmk_to_marg[tlmks.first].push_back(lmk);
-                    (tlmks.first == "pointxd" ? _m += 3 : _m += 6);
-                    _map_lmk_idx.emplace(lmk, last_idx);
-                    (tlmks.first == "pointxd" ? last_idx += 3 : last_idx += 6);
-
-                } else {
+                if (f.lock()->isOutlier())
                     continue;
-                }
+
+                if (f.lock()->getSensor()->getFrame() == frame1)
+                    is_linked_to_f1 = true;
+                
+
+                if (f.lock()->getSensor()->getFrame() == frame0)
+                    num_cam++;
+            }
+
+            // If the landmark is linked to frame1 and stereo triangulated it is marginalized
+            if (is_linked_to_f1 && (num_cam == 2)) {
+                _lmk_to_marg[tlmks.first].push_back(lmk);
+                (tlmks.first == "pointxd" ? _m += 3 : _m += 6);
+                _map_lmk_idx.emplace(lmk, last_idx);
+                (tlmks.first == "pointxd" ? last_idx += 3 : last_idx += 6);
             }
         }
     }
@@ -573,7 +568,7 @@ void Marginalization::preMarginalizeRelative(std::shared_ptr<Frame> &frame0, std
     _map_frame_idx.emplace(frame0, last_idx);
     last_idx += 6;
     _n += 6;
-    if (frame0->getIMU()) {
+    if (frame0->getIMU() && frame1->getIMU()) {
         _n += 9;
         last_idx += 9;
     }
@@ -581,7 +576,7 @@ void Marginalization::preMarginalizeRelative(std::shared_ptr<Frame> &frame0, std
     _map_frame_idx.emplace(frame1, last_idx);
     last_idx += 6;
     _n += 6;
-    if (frame1->getIMU()) {
+    if (frame1->getIMU() && frame1->getIMU()) {
         _n += 9;
         last_idx += 9;
     }

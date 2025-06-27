@@ -111,7 +111,7 @@ TEST_F(NoFOVTest, scaleTest) {
     _framep->setKeyFrame();
 
     // Add keypoints on the cameras
-    Point3DLandmarkInitializer p3d_init(100);
+    Point3DLandmarkInitializer p3d_init;
     for (auto pt : _3d_points) {
         Eigen::Affine3d T_w_lmk = Eigen::Affine3d::Identity();
         T_w_lmk.translation()   = pt;

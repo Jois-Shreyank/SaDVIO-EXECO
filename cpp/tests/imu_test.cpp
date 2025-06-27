@@ -119,7 +119,7 @@ TEST_F(ImuTest, ImuTestBase) {
 
     // Check pose estimation
     Eigen::Affine3d T_f0_f1;
-    _imu1->estimateTransform(_frame0, _frame1, T_f0_f1);
+    _imu1->estimateTransformIMU(T_f0_f1);
     ASSERT_EQ((dR * T_f0_f1.rotation().transpose()).trace(), 3);
     Eigen::Vector3d t_f0_f1 = dp + 0.5 * g * 0.5 * 0.5;
     ASSERT_EQ((T_f0_f1.translation() - t_f0_f1).norm(), 0);
@@ -604,7 +604,7 @@ TEST_F(ImuTest, predictionWithRotation) {
 
         // Estimate transform
         Eigen::Affine3d dT;
-        cur_frame->getIMU()->estimateTransform(lastKF, cur_frame, dT);
+        cur_frame->getIMU()->estimateTransformIMU(dT);
         cur_frame->setWorld2FrameTransform(dT.inverse() * lastKF->getWorld2FrameTransform());
 
         // Set last imu
@@ -636,7 +636,7 @@ TEST_F(ImuTest, predictionWithRotation) {
 
         // Estimate transform
         Eigen::Affine3d dT;
-        cur_frame->getIMU()->estimateTransform(lastKF, cur_frame, dT);
+        cur_frame->getIMU()->estimateTransformIMU(dT);
         cur_frame->setWorld2FrameTransform(dT.inverse() * lastKF->getWorld2FrameTransform());
 
         // Set last imu
@@ -685,7 +685,7 @@ TEST_F(ImuTest, predictionWithRotation2) {
 
         // Estimate transform
         Eigen::Affine3d dT;
-        cur_frame->getIMU()->estimateTransform(lastKF, cur_frame, dT);
+        cur_frame->getIMU()->estimateTransformIMU(dT);
         cur_frame->setWorld2FrameTransform(dT.inverse() * lastKF->getWorld2FrameTransform());
 
         // Set last imu

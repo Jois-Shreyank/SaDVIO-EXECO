@@ -1,12 +1,9 @@
 #include "isaeslam/slamParameters.h"
 
 #include "isaeslam/data/landmarks/BBox3d.h"
-#include "isaeslam/data/landmarks/Edgelet3D.h"
 #include "isaeslam/data/landmarks/Line3D.h"
 #include "isaeslam/data/landmarks/Point3D.h"
 
-#include "isaeslam/featuredetectors/custom_detectors/Edgelet2DFeatureDetector.h"
-#include "isaeslam/featuredetectors/custom_detectors/EllipsePatternFeatureDetector.h"
 #include "isaeslam/featuredetectors/custom_detectors/Line2DFeatureDetector.h"
 #include "isaeslam/featuredetectors/custom_detectors/csvKeypointDetector.h"
 #include "isaeslam/featuredetectors/custom_detectors/semanticBBoxFeatureDetector.h"
@@ -15,36 +12,29 @@
 #include "isaeslam/featuredetectors/opencv_detectors/cvGFTTFeatureDetector.h"
 #include "isaeslam/featuredetectors/opencv_detectors/cvKAZEFeatureDetector.h"
 #include "isaeslam/featuredetectors/opencv_detectors/cvORBFeatureDetector.h"
-#include "isaeslam/featuredetectors/opencv_detectors/cvSTFeatureDetector.h"
+
 #include "isaeslam/featurematchers/Point2DFeatureMatcher.h"
 #include "isaeslam/featurematchers/Point2DFeatureTracker.h"
-
-#include "isaeslam/featurematchers/EdgeletFeatureMatcher.h"
-#include "isaeslam/featurematchers/EdgeletFeatureTracker.h"
-#include "isaeslam/featurematchers/EllipsePatternFeatureMatcher.h"
-#include "isaeslam/featurematchers/EllipsePatternFeatureTracker.h"
 #include "isaeslam/featurematchers/Line2DFeatureMatcher.h"
 #include "isaeslam/featurematchers/Line2DFeatureTracker.h"
 #include "isaeslam/featurematchers/semanticBBoxFeatureMatcher.h"
 #include "isaeslam/featurematchers/semanticBBoxFeatureTracker.h"
 
-#include "isaeslam/landmarkinitializer/Edgelet3DlandmarkInitializer.h"
 #include "isaeslam/landmarkinitializer/Line3DlandmarkInitializer.h"
 #include "isaeslam/landmarkinitializer/Point3DlandmarkInitializer.h"
 #include "isaeslam/landmarkinitializer/semanticBBoxlandmarkInitializer.h"
 
 #include "isaeslam/estimator/EpipolarPoseEstimator.h"
-#include "isaeslam/estimator/EpipolarPoseEstimatorCustom.h"
 #include "isaeslam/estimator/PnPPoseEstimator.h"
 
 #include "isaeslam/optimizers/AngularAdjustmentCERESAnalytic.h"
 #include "isaeslam/optimizers/BundleAdjustmentCERESAnalytic.h"
 #include "isaeslam/optimizers/BundleAdjustmentCERESNumeric.h"
+#include "isaeslam/dataproviders/adataprovider.h"
 
-isae::SLAMParameters::SLAMParameters(const std::string config_file) {
+isae::SLAMParameters::SLAMParameters(const std::string config_folder_path) {
     std::cout << "------------------------------------" << std::endl;
-    isae::ConfigFileReader configurator(config_file);
-    _config = configurator._config;
+    readConfigFile(config_folder_path);
     createProvider();
     createDetectors();
     createMatchers();
@@ -53,6 +43,61 @@ isae::SLAMParameters::SLAMParameters(const std::string config_file) {
     createPoseEstimator();
     createOptimizer();
     std::cout << "------------------------------------" << std::endl;
+}
+
+void isae::SLAMParameters::readConfigFile(const std::string &path_config_folder) {
+    YAML::Node yaml_file = YAML::LoadFile(path_config_folder + "/config.yaml");
+
+    // Dataset ID
+    _config.dataset_id     = yaml_file["dataset_id"].as<std::string>();
+    _config.dataset_path   = path_config_folder + "/dataset/" + _config.dataset_id + ".yaml";
+    _config.slam_mode      = yaml_file["slam_mode"].as<std::string>();
+    _config.enable_visu    = yaml_file["enable_visu"].as<int>();
+    _config.multithreading = yaml_file["multithreading"].as<int>();
+
+    // Image processing
+    _config.contrast_enhancer = yaml_file["contrast_enhancer"].as<int>();
+    _config.clahe_clip        = yaml_file["clahe_clip"].as<float>();
+    _config.downsampling      = yaml_file["downsampling"].as<float>();
+
+    // SLAM parameters
+    _config.pose_estimator        = yaml_file["pose_estimator"].as<std::string>();
+    _config.optimizer             = yaml_file["optimizer"].as<std::string>();
+    _config.tracker               = yaml_file["tracker"].as<std::string>();
+    _config.min_kf_number         = yaml_file["min_kf_number"].as<int>();
+    _config.max_kf_number         = yaml_file["max_kf_number"].as<int>();
+    _config.fixed_frame_number    = yaml_file["fixed_frame_number"].as<int>();
+    _config.min_lmk_number        = yaml_file["min_lmk_number"].as<float>();
+    _config.min_movement_parallax = yaml_file["min_movement_parallax"].as<float>();
+    _config.max_movement_parallax = yaml_file["max_movement_parallax"].as<float>();
+    _config.marginalization       = yaml_file["marginalization"].as<int>();
+    _config.sparsification        = yaml_file["sparsification"].as<int>();
+    _config.mesh3D                = yaml_file["mesh3d"].as<int>();
+    _config.ZNCC_tsh              = yaml_file["ZNCC_tsh"].as<double>();
+    _config.max_length_tsh        = yaml_file["max_length_tsh"].as<double>();
+
+    // Features type
+    YAML::Node features_node = yaml_file["features_handled"];
+
+    for (YAML::iterator it = features_node.begin(); it != features_node.end(); ++it) {
+        FeatureStruct feature_struct;
+        feature_struct.label_feature            = (*it)["label_feature"].as<std::string>();
+        feature_struct.detector_label           = (*it)["detector_label"].as<std::string>();
+        feature_struct.number_detected_features = (*it)["number_detected_features"].as<int>();
+        feature_struct.n_features_per_cell      = (*it)["n_features_per_cell"].as<int>();
+        feature_struct.tracker_label            = (*it)["tracker_label"].as<std::string>();
+        feature_struct.tracker_height           = (*it)["tracker_height"].as<int>();
+        feature_struct.tracker_nlvls_pyramids   = (*it)["tracker_nlvls_pyramids"].as<int>();
+        feature_struct.tracker_max_err          = (*it)["tracker_max_err"].as<double>();
+        feature_struct.tracker_width            = (*it)["tracker_width"].as<int>();
+        feature_struct.matcher_label            = (*it)["matcher_label"].as<std::string>();
+        feature_struct.max_matching_dist        = (*it)["max_matching_dist"].as<double>();
+        feature_struct.matcher_height           = (*it)["matcher_height"].as<int>();
+        feature_struct.matcher_width            = (*it)["matcher_width"].as<int>();
+        feature_struct.lmk_triangulator         = (*it)["lmk_triangulator"].as<std::string>();
+
+        _config.features_handled.push_back(feature_struct);
+    }
 }
 
 void isae::SLAMParameters::createProvider() {
@@ -94,22 +139,11 @@ void isae::SLAMParameters::createDetectors() {
             isae::CsvKeypointDetector SIFT_detector = isae::CsvKeypointDetector(
                 config_line.number_detected_features, config_line.n_features_per_cell, config_line.max_matching_dist);
             _detector_map[config_line.label_feature] = std::make_shared<isae::CsvKeypointDetector>(SIFT_detector);
-        } else if (config_line.detector_label == "Edgelet2DFeatureDetector") {
-            std::cout << "+ Adding Edgelet2DFeatureDetector" << std::endl;
-            isae::EdgeletFeatureDetector edgelet_detector = isae::EdgeletFeatureDetector(
-                config_line.number_detected_features, config_line.n_features_per_cell, config_line.max_matching_dist);
-            _detector_map[config_line.label_feature] = std::make_shared<isae::EdgeletFeatureDetector>(edgelet_detector);
         } else if (config_line.detector_label == "Line2DFeatureDetector") {
             std::cout << "+ Adding Line2DFeatureDetector" << std::endl;
             isae::Line2DFeatureDetector lineDetector = isae::Line2DFeatureDetector(
                 config_line.number_detected_features, config_line.n_features_per_cell, config_line.max_matching_dist);
             _detector_map[config_line.label_feature] = std::make_shared<isae::Line2DFeatureDetector>(lineDetector);
-        } else if (config_line.detector_label == "EllipsePatternDetector") {
-            std::cout << "+ Adding EllipsePatternDetector" << std::endl;
-            isae::EllipsePatternFeatureDetector ellipsePatternDetector = isae::EllipsePatternFeatureDetector(
-                config_line.number_detected_features, config_line.n_features_per_cell);
-            _detector_map[config_line.label_feature] =
-                std::make_shared<isae::EllipsePatternFeatureDetector>(ellipsePatternDetector);
         } else if (config_line.detector_label == "semanticBBoxFeatureDetector") {
             std::cout << "+ Adding semanticBBoxFeatureDetector" << std::endl;
             isae::semanticBBoxFeatureDetector bboxFeatureDetector = isae::semanticBBoxFeatureDetector(
@@ -136,22 +170,10 @@ void isae::SLAMParameters::createMatchers() {
             matcher.feature_matcher                 = std::make_shared<Point2DFeatureMatcher>(p2dMatcher);
             _matcher_map[config_line.label_feature] = matcher;
 
-        } else if (config_line.matcher_label == "EdgeletFeatureMatcher") {
-            std::cout << "+ Adding EdgeletFeatureMatcher" << std::endl;
-            isae::EdgeletFeatureMatcher edgeletMatcher(detector);
-            matcher.feature_matcher                 = std::make_shared<EdgeletFeatureMatcher>(edgeletMatcher);
-            _matcher_map[config_line.label_feature] = matcher;
-
         } else if (config_line.matcher_label == "Line2DFeatureMatcher") {
             std::cout << "+ Adding LineFeatureMatcher" << std::endl;
             isae::Line2DFeatureMatcher line2DMatcher(detector);
             matcher.feature_matcher                 = std::make_shared<Line2DFeatureMatcher>(line2DMatcher);
-            _matcher_map[config_line.label_feature] = matcher;
-
-        } else if (config_line.matcher_label == "EllipsePatternFeatureMatcher") {
-            std::cout << "+ Adding EllipsePatternFeatureMatcher" << std::endl;
-            isae::EllipsePatternFeatureMatcher ellipseMatcher(detector);
-            matcher.feature_matcher                 = std::make_shared<EllipsePatternFeatureMatcher>(ellipseMatcher);
             _matcher_map[config_line.label_feature] = matcher;
 
         } else if (config_line.matcher_label == "semanticBBoxFeatureMatcher") {
@@ -181,23 +203,11 @@ void isae::SLAMParameters::createTrackers() {
             isae::Point2DFeatureTracker p2dTracker(detector);
             tracker.feature_tracker                 = std::make_shared<Point2DFeatureTracker>(p2dTracker);
             _tracker_map[config_line.label_feature] = tracker;
-
-        } else if (config_line.tracker_label == "EdgeletFeatureTracker") {
-            std::cout << "+ Adding EdgeletFeatureTracker" << std::endl;
-            isae::EdgeletFeatureTracker edgeletTracker(detector);
-            tracker.feature_tracker                 = std::make_shared<EdgeletFeatureTracker>(edgeletTracker);
-            _tracker_map[config_line.label_feature] = tracker;
-
+            
         } else if (config_line.tracker_label == "Line2DFeatureTracker") {
             std::cout << "+ Adding LineFeatureTracker" << std::endl;
             isae::Line2DFeatureTracker line2DTracker(detector);
             tracker.feature_tracker                 = std::make_shared<Line2DFeatureTracker>(line2DTracker);
-            _tracker_map[config_line.label_feature] = tracker;
-
-        } else if (config_line.tracker_label == "EllipsePatternFeatureTracker") {
-            std::cout << "+ Adding EllipsePatternFeatureTracker" << std::endl;
-            isae::EllipsePatternFeatureTracker ellipseTracker(detector);
-            tracker.feature_tracker                 = std::make_shared<EllipsePatternFeatureTracker>(ellipseTracker);
             _tracker_map[config_line.label_feature] = tracker;
 
         } else if (config_line.tracker_label == "semanticBBoxFeatureTracker") {
@@ -215,26 +225,13 @@ void isae::SLAMParameters::createLandmarkInitializers() {
 
         if (config_line.lmk_triangulator == "Point3DLandmarkInitializer") {
             std::cout << "+ Adding Point3DLandmarkInitializer" << std::endl;
-            isae::Point3DLandmarkInitializer p3dInit(config_line.number_kept_features);
-            _lmk_init_map[config_line.label_feature] = std::make_shared<Point3DLandmarkInitializer>(p3dInit);
-
-        } else if (config_line.lmk_triangulator == "Edgelet3DLandmarkInitializer") {
-            std::cout << "+ Adding Edgelet3DLandmarkInitializer" << std::endl;
-            isae::Edgelet3DLandmarkInitializer edgeletInit(config_line.number_kept_features);
-            _lmk_init_map[config_line.label_feature] = std::make_shared<Edgelet3DLandmarkInitializer>(edgeletInit);
-
+            _lmk_init_map[config_line.label_feature] = std::make_shared<Point3DLandmarkInitializer>();
         } else if (config_line.lmk_triangulator == "Line3DLandmarkInitializer") {
             std::cout << "+ Adding Line3DLandmarkInitializer " << std::endl;
-            isae::Line3DLandmarkInitializer lineInit(config_line.number_kept_features);
-            _lmk_init_map[config_line.label_feature] = std::make_shared<Line3DLandmarkInitializer>(lineInit);
-
-        } else if (config_line.lmk_triangulator == "EllipsePatternLandmarkInitializer") {
-            std::cout << "+ Adding EllipsePatternLandmarkInitializer -- TODO" << std::endl;
-
+            _lmk_init_map[config_line.label_feature] = std::make_shared<Line3DLandmarkInitializer>();
         } else if (config_line.lmk_triangulator == "semanticBBoxLandmarkInitializer") {
             std::cout << "+ Adding semanticBBoxLandmarkInitializer" << std::endl;
-            isae::semanticBBoxLandmarkInitializer bboxInit(config_line.number_kept_features);
-            _lmk_init_map[config_line.label_feature] = std::make_shared<semanticBBoxLandmarkInitializer>(bboxInit);
+            _lmk_init_map[config_line.label_feature] = std::make_shared<semanticBBoxLandmarkInitializer>();
         }
     }
 }
@@ -253,10 +250,6 @@ void isae::SLAMParameters::createPoseEstimator() {
         isae::PnPPoseEstimator pose_estimator;
         _pose_estimator = std::make_shared<isae::PnPPoseEstimator>(pose_estimator);
 
-    } else if (_config.pose_estimator == "epipolar_custom") {
-        std::cout << "+ Adding EpipolarPoseEstimatorCustom" << std::endl;
-        isae::EpipolarPoseEstimatorCustom pose_estimator;
-        _pose_estimator = std::make_shared<isae::EpipolarPoseEstimatorCustom>(pose_estimator);
     }
 }
 

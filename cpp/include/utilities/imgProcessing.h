@@ -8,6 +8,9 @@
 namespace isae {
 namespace imgproc {
 
+/*!
+* @brief Apply CLAHE to the image passed as parameter
+*/
 inline void histogramEqualizationCLAHE(cv::Mat &image, float clahe_clip = 2) {
     bool gray = image.channels() == 1;
     if (gray)
@@ -32,6 +35,13 @@ inline void histogramEqualizationCLAHE(cv::Mat &image, float clahe_clip = 2) {
         cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
 }
 
+/*!
+* @brief Apply adaptive gamma correction
+*
+* @param src Source image
+* @param dst Destination image passed as reference
+* @param alpha Alpha parameter
+*/
 inline void AGCWD(const cv::Mat & src, cv::Mat & dst, double alpha)
 {
 	int rows = src.rows;
@@ -96,23 +106,9 @@ inline void AGCWD(const cv::Mat & src, cv::Mat & dst, double alpha)
 	return;
 }
 
-inline void highBoostFiltering(cv::Mat &I, cv::Mat &Ires, float scale) {
-    cv::Mat Kernel         = -scale * cv::Mat::ones(3, 3, CV_32FC1);
-    Kernel.at<float>(1, 1) = 8 * scale;
-
-    cv::filter2D(I, Ires, -1, Kernel);
-
-    Ires += I;
-}
-
-inline void imageImprovment(cv::Mat &image, cv::Mat &result) {
-    /** Image improvment */
-    cv::Mat img = image;
-    cv::GaussianBlur(img, img, cv::Size(5, 5), .7, .7);
-    histogramEqualizationCLAHE(img);
-    // highBoostFiltering(img,result,0.05);
-}
-
+/*!
+* @brief Computes the Zero Normalized Cross Corelation between two images (usually small patches)
+*/
 inline double ZNCC(cv::Mat I0, cv::Mat I1) {
 
     // The patches must have the same size
@@ -132,27 +128,6 @@ inline double ZNCC(cv::Mat I0, cv::Mat I1) {
     }
 
     return s / (I0.rows * I0.cols * stdev0[0] * stdev1[0]);
-}
-
-inline double ZNCC2(cv::Mat I0, cv::Mat I1) {
-
-    // The patches must have the same size
-    if (I0.size() != I1.size()) {
-        return 1000;
-    }
-
-    double s = 0;
-	double s0 = 0;
-	double s1 = 0;
-    for (int i = 0; i < I0.rows; i++) {
-        for (int j = 0; j < I0.cols; j++) {
-            s = s + I0.at<uint8_t>(i, j) * I1.at<uint8_t>(i, j);
-			s0 = I0.at<uint8_t>(i, j) * I0.at<uint8_t>(i, j);
-			s1 = I1.at<uint8_t>(i, j) * I1.at<uint8_t>(i, j);
-        }
-    }
-
-    return s / std::sqrt(s0 * s1);
 }
 
 } // namespace imgproc

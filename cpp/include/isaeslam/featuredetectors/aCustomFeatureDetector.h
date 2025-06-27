@@ -12,6 +12,11 @@
 
 namespace isae {
 
+/*! @brief Class for custom feature detection and computation.
+ *
+ * This class extends the AFeatureDetector class and provides a framework for handcrafted feature detection
+ * and descriptor computation. It allows for grid-based detection and computation of features.
+ */
 class ACustomFeatureDetector : public AFeatureDetector {
   public:
     ACustomFeatureDetector(int n, int n_per_cell) : AFeatureDetector(n, n_per_cell) {}

@@ -10,8 +10,9 @@
 
 namespace isae {
 
-
-
+/*!
+* @brief Class for matching 2D line features 
+*/
 class Line2DFeatureMatcher : public AFeatureMatcher{
 public:
 
@@ -31,7 +32,7 @@ public:
                        int searchAreaHeight = 51) override;
 
     uint ldmk_match(std::shared_ptr<ImageSensor> &sensor1,
-                    vec_shared<ALandmark> &ldmks,
+                    std::vector<std::shared_ptr<ALandmark>> &ldmks,
                     int searchAreaWidth  = 51,
                     int searchAreaHeight  = 51) override;
 

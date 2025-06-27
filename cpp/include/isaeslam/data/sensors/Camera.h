@@ -5,6 +5,9 @@
 
 namespace isae {
 
+/*! 
+ * @brief A pinhole camera sensor class.
+ */
 class Camera : public ImageSensor {
 
   public:
@@ -25,12 +28,10 @@ class Camera : public ImageSensor {
 
     bool project(const Eigen::Affine3d &T_w_lmk,
                  const std::shared_ptr<AModel3d> ldmk_model,
-                 const Eigen::Vector3d &scale,
                  std::vector<Eigen::Vector2d> &p2ds) override;
 
     bool project(const Eigen::Affine3d &T_w_lmk,
                  const std::shared_ptr<AModel3d> ldmk_model,
-                 const Eigen::Vector3d &scale,
                  const Eigen::Affine3d &T_f_w,
                  std::vector<Eigen::Vector2d> &p2ds) override;
 
@@ -45,11 +46,6 @@ class Camera : public ImageSensor {
     Eigen::Vector3d getRay(Eigen::Vector2d f);
     double getFocal() override { return (_calibration(0, 0) + _calibration(1, 1)) / 2; }
 
-    const cv::Mat &getDepthMat() override { return _raw_data; }
-    std::vector<Eigen::Vector3d> getP3Dcam(const std::shared_ptr<AFeature> &feature) override {
-        std::vector<Eigen::Vector3d> p3ds;
-        return p3ds;
-    }
 };
 
 } // namespace isae

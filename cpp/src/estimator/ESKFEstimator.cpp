@@ -2,6 +2,7 @@
 #include "isaeslam/data/sensors/Camera.h"
 #include "isaeslam/data/sensors/IMU.h"
 #include "utilities/geometry.h"
+#include <iostream>
 
 namespace isae {
 
@@ -104,9 +105,9 @@ bool isae::ESKFEstimator::estimateTransformBetween(const std::shared_ptr<Frame> 
     }
 
     Eigen::Matrix3d intrinsic     = Eigen::Matrix3d::Identity();
-    Eigen::Matrix2d R             = 0.01 * Eigen::Matrix2d::Identity();
+    Eigen::Matrix2d R             = 0.1 * Eigen::Matrix2d::Identity();
     Eigen::Matrix<double, 6, 6> P = Eigen::Matrix<double, 6, 6>::Identity();
-    P.block(0, 0, 3, 3)           = 0.01 * Eigen::Matrix3d::Identity();
+    P.block(0, 0, 3, 3)           = Eigen::Matrix3d::Identity();
     P.block(3, 3, 3, 3)           = Eigen::Matrix3d::Identity();
 
     // Perform a first update with IMU in VIO case
@@ -143,10 +144,9 @@ bool isae::ESKFEstimator::estimateTransformBetween(const std::shared_ptr<Frame> 
             Eigen::Matrix3d Jrot   = -geometry::so3_leftJacobian(errr).inverse();
             Eigen::Matrix3d Zr     = Jdelta * 1000 * frame2->getIMU()->getCov().block(0, 0, 3, 3) * Jdelta.transpose() +
                                  Jrot * P.block(0, 0, 3, 3) * Jrot.transpose();
-            Eigen::Matrix3d Kr  = P.block(0, 0, 3, 3) * Zr.inverse();
-            dT.affine().block(0, 0, 3, 3) =
-                dT.affine().block(0, 0, 3, 3) * geometry::exp_so3(Kr * errr);
-            P.block(0, 0, 3, 3) = (Eigen::Matrix3d::Identity() - Kr) * P.block(0, 0, 3, 3);
+            Eigen::Matrix3d Kr            = P.block(0, 0, 3, 3) * Zr.inverse();
+            dT.affine().block(0, 0, 3, 3) = dT.affine().block(0, 0, 3, 3) * geometry::exp_so3(Kr * errr);
+            P.block(0, 0, 3, 3)           = (Eigen::Matrix3d::Identity() - Kr) * P.block(0, 0, 3, 3);
         }
     }
 
@@ -183,12 +183,85 @@ bool isae::ESKFEstimator::estimateTransformBetween(const std::shared_ptr<Frame> 
     return true;
 }
 
-bool isae::ESKFEstimator::estimateTransformBetween(const std::shared_ptr<Frame> &frame1,
-                                                   const std::shared_ptr<Frame> &frame2,
-                                                   typed_vec_match &typed_matches,
-                                                   Eigen::Affine3d &dT,
-                                                   Eigen::MatrixXd &covdT) {
+bool ESKFEstimator::estimateTransformBetween(const std::shared_ptr<Frame> &frame1,
+                                             const std::shared_ptr<Frame> &frame2,
+                                             typed_vec_match &typed_matches,
+                                             Eigen::Affine3d &dT,
+                                             Eigen::MatrixXd &covdT) {
     return false;
+}
+
+bool ESKFEstimator::refineTriangulation(std::shared_ptr<Frame> &frame) {
+
+    // Get the landmarks
+    typed_vec_landmarks landmarks = frame->getLandmarks();
+
+    // For all landmarks
+    for (auto &landmark_list : landmarks) {
+        for (auto &landmark : landmark_list.second) {
+            if (!landmark->isInitialized() || landmark->isOutlier())
+                continue;
+
+            Eigen::Matrix3d intrinsic = Eigen::Matrix3d::Identity();
+            Eigen::Matrix2d R         = 0.01 * Eigen::Matrix2d::Identity();
+            Eigen::Matrix3d P         = Eigen::Matrix3d::Identity();
+            Eigen::Vector3d t_w_lmk   = landmark->getPose().translation();
+
+            // For all features
+            std::vector<std::weak_ptr<AFeature>> featuresAssociatedLandmarks = landmark->getFeatures();
+
+            std::vector<Eigen::Vector2d> err_vec;
+            std::vector<Eigen::MatrixXd> J_p_vec;
+
+            for (std::weak_ptr<AFeature> &wfeature : featuresAssociatedLandmarks) {
+
+                std::shared_ptr<AFeature> feature = wfeature.lock();
+                if (!feature)
+                    continue;
+
+                // Get the camera
+                Eigen::Affine3d T_s_w = feature->getSensor()->getWorld2SensorTransform();
+
+                // Get the bearing vector
+                Eigen::Vector3d ray_cam = feature->getBearingVectors().at(0);
+                Eigen::Vector2d ray_cam_h(ray_cam.x() / ray_cam.z(), ray_cam.y() / ray_cam.z());
+
+                // Projection
+                Eigen::Vector2d proj;
+                Eigen::MatrixXd J_T, J_p;
+                std::tie(proj, J_T, J_p) =
+                    jac_projection(intrinsic, t_w_lmk, T_s_w.linear(), T_s_w.translation(), Eigen::Vector3d::Zero());
+                Eigen::Vector2d err = ray_cam_h - proj;
+
+                err_vec.push_back(err);
+                J_p_vec.push_back(J_p);
+            }
+
+            int n_feat          = err_vec.size();
+            Eigen::VectorXd err = Eigen::VectorXd::Zero(2 * n_feat);
+            Eigen::MatrixXd J_p = Eigen::MatrixXd::Zero(2 * n_feat, 3);
+            Eigen::MatrixXd K   = Eigen::MatrixXd::Zero(3, 2 * n_feat);
+
+            for (int k = 0; k < n_feat; ++k) {
+                err.segment<2>(2 * k)     = err_vec[k];
+                J_p.block<2, 3>(2 * k, 0) = J_p_vec[k];
+            }
+
+            // Kalman Equations
+            K                  = P * J_p.transpose() * (J_p * P * J_p.transpose() + R).inverse();
+            Eigen::Vector3d dx = K * err;
+            P                  = (Eigen::Matrix3d::Identity() - K * J_p) * P;
+
+            // Update
+            t_w_lmk = t_w_lmk + dx;
+
+            // Update the landmark and check if it is valid
+            landmark->setPosition(t_w_lmk);
+            landmark->sanityCheck();
+        }
+    }
+
+    return true;
 }
 
 } // namespace isae

@@ -16,8 +16,9 @@ SLAMCore::SLAMCore(std::shared_ptr<isae::SLAMParameters> slam_param) : _slam_par
                                             _slam_param->_config.max_kf_number,
                                             _slam_param->_config.fixed_frame_number);
     _global_map = std::make_shared<GlobalMap>();
-    _mesher     = std::make_shared<Mesher>(
-        _slam_param->_config.slam_mode, _slam_param->_config.ZNCC_tsh, _slam_param->_config.max_length_tsh);
+    if (slam_param->_config.mesh3D)
+        _mesher = std::make_shared<Mesher>(
+            _slam_param->_config.slam_mode, _slam_param->_config.ZNCC_tsh, _slam_param->_config.max_length_tsh);
 
     _avg_detect_t      = 0;
     _avg_lmk_init_t    = 0;
@@ -94,24 +95,12 @@ void SLAMCore::updateLandmarks(typed_vec_match matches_lmk) {
 
 void SLAMCore::initLandmarks(std::shared_ptr<Frame> &f) {
 
-    // Get number of landmarks requested per type (defined in the tracker and provided in yaml)
-    std::map<std::string, int> N;
-    for (auto &tracker : _slam_param->getLandmarksInitializer()) {
-        N[tracker.first] = tracker.second->getNbRequieredLdmk();
-
-        // Check number of missing landmarks after map update
-        N[tracker.first] = N[tracker.first] - f->getLandmarks()[tracker.first].size();
-    }
-
     // Init unitialized landmarks
     for (auto &ttracks_in_time : _matches_in_time_lmk) {
 
         // Init all tracked feature in frame
         int nb_created = 0;
         for (auto &ttime : ttracks_in_time.second) {
-            // Check if we have enough landmarks
-            if (N[ttracks_in_time.first] - nb_created <= 0)
-                break;
 
             // Check if the landmark is not initialized
             if (ttime.first->getLandmark().lock()) {
@@ -127,7 +116,6 @@ void SLAMCore::initLandmarks(std::shared_ptr<Frame> &f) {
             _slam_param->getLandmarksInitializer()[ttracks_in_time.first]->initFromFeatures(features);
             nb_created++;
         }
-        N[ttracks_in_time.first] = N[ttracks_in_time.first] - nb_created;
     }
 
     // Init landmarks with tracks in time (+ seek for matches in frame if in stereo)
@@ -138,10 +126,6 @@ void SLAMCore::initLandmarks(std::shared_ptr<Frame> &f) {
         int nb_created = 0;
         for (auto &ttime : ttracks_in_time.second) {
             std::vector<std::shared_ptr<AFeature>> feats;
-
-            // Check if we have enougth landmarks
-            if (N[ttracks_in_time.first] - nb_created <= 0)
-                break;
 
             to_init.push_back(ttime);
             feats.push_back(ttime.first);
@@ -169,9 +153,6 @@ void SLAMCore::initLandmarks(std::shared_ptr<Frame> &f) {
 
             _slam_param->getLandmarksInitializer()[ttracks_in_time.first]->initFromFeatures(feats);
         }
-
-        // Check number of missing landmarks after tracks_in_time_lmk
-        N[ttracks_in_time.first] = N[ttracks_in_time.first] - nb_created;
     }
 
     // Initializing landmarks with L / R matches only in the worst case
@@ -182,9 +163,6 @@ void SLAMCore::initLandmarks(std::shared_ptr<Frame> &f) {
         vec_match to_init;
         int nb_created = 0;
         for (auto &tframe : ttracks_in_frame.second) {
-            // Check if we have enough landmarks
-            if (N[ttracks_in_frame.first] - nb_created <= 0)
-                break;
 
             // Check if the feat has enough parallax
             if ((tframe.first->getPoints().at(0) - tframe.second->getPoints().at(0)).norm() < 4) {
@@ -200,7 +178,6 @@ void SLAMCore::initLandmarks(std::shared_ptr<Frame> &f) {
             }
         }
         _slam_param->getLandmarksInitializer()[ttracks_in_frame.first]->initFromMatches(to_init);
-        N[ttracks_in_frame.first] = N[ttracks_in_frame.first] - nb_created;
     }
 }
 
@@ -241,7 +218,7 @@ typed_vec_match SLAMCore::epipolarFiltering(std::shared_ptr<ImageSensor> &cam0,
         double residual = std::abs(epiplane_normal.dot(ray2));
 
         // The angular threshold is set to 1 degree
-        if (90 - std::acos(residual) * 180 / M_PI < 0.5)
+        if (90 - std::acos(residual) * 180 / M_PI < 1)
             valid_matches["pointxd"].push_back(m);
         else
             m.second->setOutlier();
@@ -279,7 +256,7 @@ void SLAMCore::predictFeature(std::vector<std::shared_ptr<AFeature>> features,
 
             bool success;
             success = sensor->project(
-                T_w_lmk, feature->getLandmark().lock()->getModel(), Eigen::Vector3d::Ones(), predicted_p2ds);
+                T_w_lmk, feature->getLandmark().lock()->getModel(), predicted_p2ds);
 
             if (success && std::isfinite(predicted_p2ds.at(0).x()) && std::isfinite(predicted_p2ds.at(0).y())) {
                 features_init.push_back(std::make_shared<AFeature>(predicted_p2ds));
@@ -401,6 +378,7 @@ bool SLAMCore::shouldInsertKeyframe(std::shared_ptr<Frame> &f) {
 
     avg_parallax /= (n_matches + n_matches_lmk);
     avg_parallax *= 180 / M_PI;
+    _parallax = avg_parallax;
 
     // Check conditions to vote for a KF or not
 
@@ -439,25 +417,26 @@ bool SLAMCore::predict(std::shared_ptr<Frame> &f) {
     // False if the prediction failed and constant velocity applies
     if (!_slam_param->getPoseEstimator()->estimateTransformBetween(
             getLastKF(), f, _matches_in_time_lmk["pointxd"], T_last_curr, covdT)) {
-        std::cerr << "Predict fails" << std::endl;
-
-        f->setWorld2FrameTransform(T_last_curr.inverse() * getLastKF()->getWorld2FrameTransform());
+        std::cerr << "Predict fails, PnP failed" << std::endl;
         return false;
     } else {
+
+        // Check if the pose is valid 
+        if (T_const.translation().norm() > 0.1) {
+            double delta_norm = (geometry::se3_RTtoVec6d(T_last_curr) - geometry::se3_RTtoVec6d(T_const)).norm() / 
+                                geometry::se3_RTtoVec6d(T_const).norm();
+            if (delta_norm > 10) {
+                std::cerr << "Predict fails, PnP pose is not valid" << std::endl;
+                std::cout << "T_last_curr: " << T_last_curr.translation().transpose() << std::endl;
+                std::cout << "T_const: " << T_const.translation().transpose() << std::endl;
+                _matches_in_time_lmk["pointxd"].clear(); // The matches are not valid, clear them
+                return false;
+            }
+        }
 
         // Update the pose only for pnp
         if (_slam_param->_config.pose_estimator != "pnp")
             T_last_curr = T_const;
-
-        // Check constant translation velocity assumption at 1000% (only if there is enough motion)
-        if ((T_const.translation().norm() > 0.01 && T_last_curr.translation().norm() > 0.01) &&
-            (T_const.translation() - T_last_curr.translation()).norm() / T_last_curr.translation().norm() > 10) {
-            std::cout << "Constant velocity model failed FORCE IT " << std::endl;
-            std::cout << "previous = " << std::endl << T_const.matrix() << std::endl;
-            T_last_curr = T_const;
-            f->setWorld2FrameTransform(T_last_curr.inverse() * getLastKF()->getWorld2FrameTransform());
-            return false;
-        }
 
         f->setWorld2FrameTransform(T_last_curr.inverse() * getLastKF()->getWorld2FrameTransform());
 
@@ -508,7 +487,7 @@ void SLAMCore::profiling() {
 
         // Write in a txt file for evaluation
         if (getLastKF()) {
-            std::shared_ptr<Frame> f = getLastKF();
+            std::shared_ptr<Frame> f = _local_map->getFrames().front();
             std::ofstream fw_res("log_slam/results.csv", std::ofstream::out | std::ofstream::app);
             Eigen::Affine3d T_w_f   = f->getFrame2WorldTransform();
             const Eigen::Matrix3d R = T_w_f.linear();
@@ -594,7 +573,7 @@ void SLAMCore::runFrontEnd() {
                 init_success = this->init();
         } else
             this->frontEndStep();
-        std::this_thread::sleep_for(std::chrono::microseconds(10));
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
     }
 }
 
@@ -603,7 +582,7 @@ void SLAMCore::runBackEnd() {
     while (true) {
 
         this->backEndStep();
-        std::this_thread::sleep_for(std::chrono::microseconds(10));
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
     }
 }
 
@@ -619,6 +598,8 @@ void SLAMCore::runFullOdom() {
             this->frontEndStep();
 
         this->backEndStep();
+
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
     }
 }
 

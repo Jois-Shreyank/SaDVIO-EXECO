@@ -17,7 +17,7 @@ bool Point3DLandmarkInitializer::initLandmark(std::vector<std::shared_ptr<isae::
     // Get ray and optical centers of cameras in world coordinates
     Eigen::Matrix3d S = Eigen::Matrix3d::Zero();
     Eigen::Vector3d C(0, 0, 0);
-    vec3d rays;
+    std::vector<Eigen::Vector3d> rays;
 
     for (const std::shared_ptr<AFeature> &f : features) {
 
@@ -102,10 +102,6 @@ bool Point3DLandmarkInitializer::initLandmarkWithDepth(std::vector<std::shared_p
                                                        std::shared_ptr<ALandmark> &landmark) {
 
     std::vector<std::vector<Eigen::Vector3d>> all_p3ds;
-    for (auto f : features) {
-        std::vector<Eigen::Vector3d> p3ds = f->getSensor()->getP3Dcam(f);
-        all_p3ds.push_back(p3ds);
-    }
 
     Eigen::Vector3d position;
     for (auto p3ds : all_p3ds)

@@ -3,6 +3,7 @@
 
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/core.hpp>
+#include <thread>
 
 #include "sensor_msgs/point_cloud2_iterator.hpp"
 #include <geometry_msgs/msg/point.hpp>
@@ -216,26 +217,6 @@ class RosVisualizer : public rclcpp::Node {
             cv::circle(img_2_pub, cv::Point(pt2d.x(), pt2d.y()), 4, col, -1);
         }
 
-        for (const auto &feat : frame->getSensors().at(0)->getFeatures()["edgeletxd"]) {
-            cv::Scalar col;
-
-            if (feat->getLandmark().lock() == nullptr) {
-                col = cv::Scalar(0, 255, 0);
-            } else {
-                col = cv::Scalar(255, 255, 0);
-            }
-            Eigen::Vector2d pt2d  = feat->getPoints().at(0);
-            Eigen::Vector2d pt2d2 = feat->getPoints().at(1);
-            Eigen::Vector2d delta = 10 * (pt2d2 - pt2d);
-
-            cv::circle(img_2_pub, cv::Point(pt2d.x(), pt2d.y()), 4, col, -1);
-            cv::line(img_2_pub,
-                     cv::Point(pt2d.x() - delta.x(), pt2d.y() - delta.y()),
-                     cv::Point(pt2d2.x() + delta.x(), pt2d2.y() + delta.y()),
-                     col,
-                     1);
-        }
-
         for (const auto &feat : frame->getSensors().at(0)->getFeatures()["linexd"]) {
             cv::Scalar col;
 
@@ -368,7 +349,7 @@ class RosVisualizer : public rclcpp::Node {
         _pub_vo_pose->publish(Twc_msg);
     }
 
-    void publishMap(const std::shared_ptr<isae::AMap> map) {
+    void publishLocalMap(const std::shared_ptr<isae::LocalMap> map) {
 
         _vo_traj_msg.header.stamp    = rclcpp::Node::now();
         _vo_traj_msg.header.frame_id = "world";
@@ -395,7 +376,7 @@ class RosVisualizer : public rclcpp::Node {
         _pub_vo_traj->publish(_vo_traj_msg);
     }
 
-    void publishLocalMapCloud(const std::shared_ptr<isae::AMap> map, const bool no_fov_mode = false) {
+    void publishLocalMapCloud(const std::shared_ptr<isae::LocalMap> map, const bool no_fov_mode = false) {
         isae::typed_vec_landmarks ldmks = map->getLandmarks();
 
         _points_local.header.frame_id    = "world";
@@ -449,7 +430,7 @@ class RosVisualizer : public rclcpp::Node {
             std::vector<Eigen::Vector3d> ldmk_model = l->getModelPoints();
             for (const auto &p3d_model : ldmk_model) {
                 // conversion to the world coordinate system
-                Eigen::Vector3d t_w_lmk = T_w_ldmk * p3d_model.cwiseProduct(l->getScale());
+                Eigen::Vector3d t_w_lmk = T_w_ldmk * p3d_model.cwiseProduct(Eigen::Vector3d::Ones());
                 geometry_msgs::msg::Point pt;
                 pt.x = t_w_lmk.x();
                 pt.y = t_w_lmk.y();
@@ -461,7 +442,7 @@ class RosVisualizer : public rclcpp::Node {
         _pub_local_map_lines->publish(_lines_local);
     }
 
-    void publishGlobalMapCloud(const std::shared_ptr<isae::AMap> map) {
+    void publishGlobalMapCloud(const std::shared_ptr<isae::GlobalMap> map) {
         isae::typed_vec_landmarks ldmks = map->getLandmarks();
 
         _points_global.header.frame_id    = "world";
@@ -498,7 +479,7 @@ class RosVisualizer : public rclcpp::Node {
             std::vector<Eigen::Vector3d> ldmk_model = l->getModelPoints();
             for (const auto &p3d_model : ldmk_model) {
                 // conversion to the world coordinate system
-                Eigen::Vector3d t_w_lmk = T_w_ldmk * p3d_model.cwiseProduct(l->getScale());
+                Eigen::Vector3d t_w_lmk = T_w_ldmk * p3d_model.cwiseProduct(Eigen::Vector3d::Ones());
                 geometry_msgs::msg::Point pt;
                 pt.x = t_w_lmk.x();
                 pt.y = t_w_lmk.y();
@@ -576,7 +557,7 @@ class RosVisualizer : public rclcpp::Node {
             }
 
             if (SLAM->_local_map_to_display) {
-                publishMap(SLAM->_local_map_to_display);
+                publishLocalMap(SLAM->_local_map_to_display);
                 publishLocalMapCloud(SLAM->_local_map_to_display);
                 SLAM->_local_map_to_display.reset();
             }
@@ -585,6 +566,8 @@ class RosVisualizer : public rclcpp::Node {
                 publishMesh(SLAM->_mesh_to_display);
                 SLAM->_mesh_to_display.reset();
             }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
 

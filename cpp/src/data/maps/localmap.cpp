@@ -25,6 +25,21 @@ void LocalMap::addFrame(std::shared_ptr<isae::Frame> &frame) {
     }
 }
 
+void LocalMap::removeFrame(std::shared_ptr<isae::Frame> &frame) {
+    // Remove the frame from the local map
+    _localmap_mtx.lock();
+    for (auto it = _frames.begin(); it != _frames.end(); ++it) {
+        if (*it == frame) {
+            it->get()->cleanLandmarks();
+            it->get()->cleanSensors();
+            _frames.erase(it);
+            break;
+        }
+    }
+    _localmap_mtx.unlock();
+    _margin_flag = false;
+}
+
 void LocalMap::discardLastFrame() {
 
     // Discard features from the marginalized frame
@@ -39,30 +54,7 @@ void LocalMap::discardLastFrame() {
     // remove landmarks in the map without any feature
     this->removeEmptyLandmarks();
     _margin_flag = false;
-
-    // // If we have not enough landmarks in common with the last frame, raise the marginalization flag
-    // int lmk_counter = 0;
-    // for (auto &feat_last : _frames.front()->getSensors().at(0)->getFeatures()["pointxd"]) {
-    //     if (!feat_last->getLandmark().lock())
-    //         continue;
-    //     for (auto &feat_curr : _frames.back()->getSensors().at(0)->getFeatures()["pointxd"]) {
-    //         if (!feat_curr->getLandmark().lock())
-    //             continue;
-    //         if (feat_last->getLandmark().lock()->_id == feat_curr->getLandmark().lock()->_id) {
-    //             lmk_counter++;
-    //         }
-    //     }
-
-    //     if (lmk_counter > 5) {
-    //         break;
-    //     }
-    // }
-
-    // if (lmk_counter < 5) {
-    //     _margin_flag = true;
-    // } else {
-    //     _margin_flag = false;
-    // }
+    
 }
 
 void LocalMap::removeEmptyLandmarks() {
@@ -85,8 +77,14 @@ void LocalMap::removeEmptyLandmarks() {
 
 void LocalMap::reset() {
     _localmap_mtx.lock();
+    for (auto &frame : _frames) {
+        frame->cleanLandmarks();
+        frame->cleanSensors();
+    }
     _frames.clear();
-    _landmarks.clear();
+    for (auto &tlmks : _landmarks) {
+        tlmks.second.clear();
+    }
     _localmap_mtx.unlock();
 }
 
@@ -94,6 +92,11 @@ bool LocalMap::computeRelativePose(std::shared_ptr<isae::Frame> &frame1,
                                    std::shared_ptr<isae::Frame> &frame2,
                                    Eigen::Affine3d &T_f1_f2,
                                    Eigen::MatrixXd &cov) {
+    // Check if the local map is not empty
+    if (_frames.size() < 2) {
+        return false;
+    }
+
     // Compute the relative pose between two frames
     T_f1_f2 = frame1->getFrame2WorldTransform().inverse() * frame2->getFrame2WorldTransform();
 
@@ -105,50 +108,42 @@ bool LocalMap::computeRelativePose(std::shared_ptr<isae::Frame> &frame1,
         }
     }
 
-    // If we haven't found at least 2 KF, return false 
+    // If we haven't found at least 2 KF, return false
     if (frames_to_add.size() < 2) {
         return false;
     }
 
     // Propagate the covariance
     cov = frames_to_add.at(1)->getdTCov();
-    Eigen::Affine3d T_f1_fi =
+    Eigen::Affine3d T_f1_fim1 =
         frame1->getFrame2WorldTransform().inverse() * frames_to_add.at(1)->getFrame2WorldTransform();
 
     for (uint i = 2; i < frames_to_add.size(); i++) {
-
         Eigen::Affine3d T_fim1_fi = frames_to_add.at(i - 1)->getFrame2WorldTransform().inverse() *
                                     frames_to_add.at(i)->getFrame2WorldTransform();
 
+        // Jacobian formulas come from "A micro Lie Theory for state estimation in robotics" by Solà et al.
         Eigen::MatrixXd J_f1   = Eigen::MatrixXd::Identity(6, 6);
         J_f1.block<3, 3>(0, 0) = T_fim1_fi.rotation().transpose();
-        J_f1.block<3, 3>(3, 0) = T_f1_fi.rotation();
+        J_f1.block<3, 3>(0, 3) = -T_fim1_fi.rotation() * geometry::skewMatrix(T_fim1_fi.translation());
+        J_f1.block<3, 3>(3, 3) = T_fim1_fi.rotation().transpose();
 
-        Eigen::MatrixXd J_dt   = Eigen::MatrixXd::Identity(6, 6);
-        J_dt.block<3, 3>(3, 3) = T_f1_fi.rotation().transpose();
+        Eigen::MatrixXd J_dt = Eigen::MatrixXd::Identity(6, 6);
 
-        T_f1_fi = frame1->getFrame2WorldTransform().inverse() * frames_to_add.at(i)->getFrame2WorldTransform();
-        cov     = J_f1 * cov * J_f1.transpose() + J_dt * frames_to_add.at(i)->getdTCov() * J_dt.transpose();
-    }
-    
-    return true;
-}
-
-void LocalMap::pushLandmarks(std::shared_ptr<isae::Frame> &frame) {
-    typed_vec_landmarks all_ldmks = frame->getLandmarks();
-
-    // For all type of landmarks to add
-    for (auto &typed_ldmks : all_ldmks) {
-        for (auto &ldmk : typed_ldmks.second) {
-            if (!(!ldmk->isInitialized() || ldmk->isInMap() || ldmk->getFeatures().empty())) {
-                ldmk->setInMap();
-
-                _localmap_mtx.lock();
-                _landmarks[ldmk->getLandmarkLabel()].push_back(ldmk);
-                _localmap_mtx.unlock();
-            }
+        T_f1_fim1 = frame1->getFrame2WorldTransform().inverse() * frames_to_add.at(i)->getFrame2WorldTransform();
+        if (cov.rows() != 6 && cov.cols() != 6) {
+            cov = Eigen::MatrixXd::Identity(6, 6);
+            return false;
         }
+        cov = J_f1 * cov * J_f1.transpose() + J_dt * frames_to_add.at(i)->getdTCov() * J_dt.transpose();
     }
+
+    if (cov.rows() != 6 && cov.cols() != 6) {
+        cov = Eigen::MatrixXd::Identity(6, 6);
+        return false;
+    }
+
+    return true;
 }
 
 } // namespace isae

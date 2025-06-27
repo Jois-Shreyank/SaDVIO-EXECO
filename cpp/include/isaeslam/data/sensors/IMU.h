@@ -7,14 +7,24 @@ namespace isae {
 
 static Eigen::Vector3d g(0, 0, -9.81);
 
+/*!
+ * @brief Config strucuture for an IMU.
+ */
 struct imu_config : sensor_config {
     double gyr_noise;
     double bgyr_noise;
     double acc_noise;
     double bacc_noise;
     double rate_hz;
+    double dt_imu_cam;
 };
 
+/*!
+ * @brief An Inertial Measurement Unit (IMU) sensor class.
+ *
+ * This class represents an IMU sensor that provides acceleration and gyroscope measurements.
+ * It handles the preintegration of IMU data for use in SLAM systems.
+ */
 class IMU : public ASensor {
   public:
     IMU(Eigen::Vector3d acc, Eigen::Vector3d gyr) : ASensor("imu"), _acc(acc), _gyr(gyr) {
@@ -45,11 +55,6 @@ class IMU : public ASensor {
     Eigen::Vector3d getAcc() { return _acc; }
     Eigen::Vector3d getGyr() { return _gyr; }
 
-    // This is a dirty trick to avoid that the shared_ptr of the frame desapear in the recursive process
-    // TO DO: is there a better way? Maybe storing the variable of interest in an IMU object
-    void setCurFrame(std::shared_ptr<Frame> frame) {
-        _cur_frame = frame;
-    }
     void setBa(Eigen::Vector3d ba) {
         std::lock_guard<std::mutex> lock(_imu_mtx);
         _ba = ba;
@@ -113,7 +118,10 @@ class IMU : public ASensor {
     }
     std::shared_ptr<Frame> getLastKF() {
         std::lock_guard<std::mutex> lock(_imu_mtx);
-        return _last_kf;
+        if (_last_kf.lock())
+            return _last_kf.lock();
+        else
+            return nullptr;
     }
     void setLastIMU(std::shared_ptr<IMU> imu) {
         std::lock_guard<std::mutex> lock(_imu_mtx);
@@ -124,53 +132,65 @@ class IMU : public ASensor {
         return _last_IMU;
     }
 
-    // Compute the deltas for preintegration factor
+    /*!
+     * @brief Process IMU data to compute pre integration deltas and covariances.
+     *
+     * This function processes the IMU data to compute the deltas in position, velocity, and orientation on SO(3)
+     * It is based on "On-Manifold Preintegration for Real-Time Visual-Inertial Odometry" by Forster et al.
+     * Source: https://arxiv.org/abs/1512.02363
+     */
     bool processIMU();
 
-    // Compute the transformation between frames using the deltas
-    void
-    estimateTransform(const std::shared_ptr<Frame> &frame1, const std::shared_ptr<Frame> &frame2, Eigen::Affine3d &dT);
+    /*!
+     * @brief Estimate the transformation between the Last KF and the current frame with pre integration deltas.
+     */
+    void estimateTransformIMU(Eigen::Affine3d &dT);
 
-    // Update deltas with biases variations
+    /*!
+     * @brief  Update deltas with biases variations
+     */
     void biasDeltaCorrection(Eigen::Vector3d d_ba, Eigen::Vector3d d_bg);
 
-    // Update biases (e.g. after optimization)
+    /*!
+     * @brief Update biases w.r.t the previous KF (e.g. after optimization)
+     */
     void updateBiases();
 
-    // Jacobians of deltas w.r.t. the bias
-    Eigen::Matrix3d _J_dR_bg;
-    Eigen::Matrix3d _J_dv_ba;
-    Eigen::Matrix3d _J_dv_bg;
-    Eigen::Matrix3d _J_dp_ba;
-    Eigen::Matrix3d _J_dp_bg;
+    Eigen::Matrix3d _J_dR_bg; //!< Jacobian of the delta rotation w.r.t the gyro bias
+    Eigen::Matrix3d _J_dv_ba; //!< Jacobian of the delta velocity w.r.t the accel bias
+    Eigen::Matrix3d _J_dv_bg; //!< Jacobian of the delta velocity w.r.t the gyro bias
+    Eigen::Matrix3d _J_dp_ba; //!< Jacobian of the delta position w.r.t the accel bias
+    Eigen::Matrix3d _J_dp_bg; //!< Jacobian of the delta position w.r.t the gyro bias
+
+    unsigned long long _timestamp_imu; //!< Timestamp stored to avoid dependency on the frame
+    Eigen::Affine3d _T_w_f_imu;        //!< Transform from the world to the frame to avoid dependency on the frame
 
   private:
     // Measurements
-    Eigen::Vector3d _acc;
-    Eigen::Vector3d _gyr;
+    Eigen::Vector3d _acc; //!< Acceleration measurement
+    Eigen::Vector3d _gyr; //!< Gyroscope measurement
 
     // IMU noise
-    double _gyr_noise;
-    double _bgyr_noise;
-    double _acc_noise;
-    double _bacc_noise;
-    double _rate_hz;
-    Vector6d _eta;
+    double _gyr_noise;  //!< Gyroscope noise
+    double _bgyr_noise; //!< Gyroscope bias random walk noise
+    double _acc_noise;  //!< Accelerometer noise
+    double _bacc_noise; //! Accelerometer bias random walk noise
+    double _rate_hz;    //!< IMU rate in Hz
+    Vector6d _eta;      //!< Noise vector for the IMU measurements
 
     // States computed by processIMU()
-    Eigen::Vector3d _delta_p;
-    Eigen::Vector3d _delta_v;
-    Eigen::Matrix3d _delta_R;
-    Eigen::Vector3d _ba;
-    Eigen::Vector3d _bg;
-    Eigen::Vector3d _v;
+    Eigen::Vector3d _delta_p; //!< Pre integration delta in position
+    Eigen::Vector3d _delta_v; //!< Pre integration delta in velocity
+    Eigen::Matrix3d _delta_R; //!< Pre integration delta in orientation (SO(3))
+    Eigen::Vector3d _ba;      //!< Accelerometer bias
+    Eigen::Vector3d _bg;      //! Gyroscope bias
+    Eigen::Vector3d _v;       //!< Velocity of the IMU in the world frame
 
     // Covariance computation
-    Eigen::MatrixXd _Sigma;
+    Eigen::MatrixXd _Sigma; //!< Covariance of the pre integration deltas
 
-    std::shared_ptr<IMU> _last_IMU;
-    std::shared_ptr<Frame> _last_kf;
-    std::shared_ptr<Frame> _cur_frame; 
+    std::shared_ptr<IMU> _last_IMU; //!< Last IMU measurement used for pre integration
+    std::weak_ptr<Frame> _last_kf;  //!< Last keyframe used for pre integration
 
     // Mutex
     mutable std::mutex _imu_mtx;

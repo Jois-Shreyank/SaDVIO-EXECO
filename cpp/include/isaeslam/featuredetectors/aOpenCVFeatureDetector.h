@@ -10,6 +10,9 @@ namespace isae {
 
 class Point2D;
 
+/*!
+ * @brief AOpenCVFeatureDetector class for detecting and computing features using OpenCV.
+ */
 class AOpenCVFeatureDetector : public AFeatureDetector {
   public:
     AOpenCVFeatureDetector(int n, int n_per_cell) : AFeatureDetector(n, n_per_cell) {}
@@ -20,6 +23,10 @@ class AOpenCVFeatureDetector : public AFeatureDetector {
                           cv::Mat &descriptors,
                           int n_points = 0);
     void computeDescriptor(const cv::Mat &img, std::vector<std::shared_ptr<AFeature>> &features);
+
+    /*!
+    * @brief Retain the n best keypoints based on their response
+    */
     void retainBest(std::vector<cv::KeyPoint> &_keypoints, int n);
     std::vector<std::shared_ptr<AFeature>> detectAndComputeGrid(
         const cv::Mat &img,
@@ -27,8 +34,8 @@ class AOpenCVFeatureDetector : public AFeatureDetector {
         std::vector<std::shared_ptr<AFeature>> existing_features = std::vector<std::shared_ptr<AFeature>>());
 
   protected:
-    cv::Ptr<cv::FeatureDetector> _detector;       // stores the opencv detector
-    cv::Ptr<cv::DescriptorExtractor> _descriptor; // stores the opencv descriptor
+    cv::Ptr<cv::FeatureDetector> _detector;       //!< Stores the opencv detector
+    cv::Ptr<cv::DescriptorExtractor> _descriptor; //!< Stores the opencv descriptor extractor
 };
 
 } // namespace isae

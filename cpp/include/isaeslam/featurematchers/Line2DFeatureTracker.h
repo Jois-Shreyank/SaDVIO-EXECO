@@ -4,12 +4,16 @@
 #include "isaeslam/typedefs.h"
 #include <type_traits>
 
+#include "isaeslam/data/features/Line2D.h"
+#include "isaeslam/featuredetectors/custom_detectors/Line2DFeatureDetector.h"
 #include "isaeslam/featurematchers/Line2DFeatureMatcher.h"
 #include "isaeslam/featurematchers/afeaturetracker.h"
-#include "isaeslam/featuredetectors/custom_detectors/Line2DFeatureDetector.h"
-#include "isaeslam/data/features/Line2D.h"
 
 namespace isae {
+
+/*!
+ * @brief Class for tracking 2D line features
+ */
 
 class Line2DFeatureTracker : public AFeatureTracker {
   public:
@@ -30,9 +34,9 @@ class Line2DFeatureTracker : public AFeatureTracker {
                bool backward      = false) override;
 
   private:
-    cv::TermCriteria _termCrit; //< termination criteria for the optical flow algorithm
-    double _klt_max_err       = 50.;
-    double _max_backward_dist = 5;
+    cv::TermCriteria _termCrit;      //!< termination criteria for the optical flow algorithm
+    double _klt_max_err       = 50.; //!< maximum error for KLT tracking
+    double _max_backward_dist = 5;   //!< maximum distance for backward tracking
 };
 
 } // namespace isae

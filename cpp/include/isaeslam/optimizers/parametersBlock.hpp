@@ -5,9 +5,12 @@
 
 namespace isae {
 
+/*!
+ * @brief A Parameter block for pose that does the interface between a double* and an Eigen::Affine3d
+ */
 class PoseParametersBlock {
 
-public:
+  public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     PoseParametersBlock() {}
@@ -18,55 +21,52 @@ public:
     }
 
     PoseParametersBlock(const PoseParametersBlock &block) {
-        for( size_t i = 0 ; i < ndim_ ; i++ ) {
+        for (size_t i = 0; i < ndim_; i++) {
             values_[i] = block.values_[i];
         }
     }
 
-    PoseParametersBlock& operator = (const PoseParametersBlock &block) 
-    { 
-        for( size_t i = 0 ; i < ndim_ ; i++ ) {
+    PoseParametersBlock &operator=(const PoseParametersBlock &block) {
+        for (size_t i = 0; i < ndim_; i++) {
             values_[i] = block.values_[i];
         }
-        return *this; 
-    }  
+        return *this;
+    }
 
     Eigen::Affine3d getPose() {
         Eigen::Map<Vector6d> x(values_);
         return geometry::se3_Vec6dtoRT(x);
     }
 
-    inline double* values() {  
-        return values_; 
-    }
+    inline double *values() { return values_; }
 
     static const size_t ndim_ = 6;
-    double values_[ndim_] = {0.,0.,0.,0.,0.,0.};
+    double values_[ndim_]     = {0., 0., 0., 0., 0., 0.};
 };
 
+/*!
+ * @brief A Parameter block for 3D position that does the interface between a double* and an Eigen::Vector3d
+ */
 class PointXYZParametersBlock {
-    
-public:
+
+  public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     PointXYZParametersBlock() {}
 
-    PointXYZParametersBlock(const Eigen::Vector3d &X) {
-        Eigen::Map<Eigen::Vector3d> (values_, 3, 1) = X;
-    }
+    PointXYZParametersBlock(const Eigen::Vector3d &X) { Eigen::Map<Eigen::Vector3d>(values_, 3, 1) = X; }
 
     PointXYZParametersBlock(const PointXYZParametersBlock &block) {
-        for( size_t i = 0 ; i < ndim_ ; i++ ) {
+        for (size_t i = 0; i < ndim_; i++) {
             values_[i] = block.values_[i];
         }
     }
 
-    PointXYZParametersBlock& operator = (const PointXYZParametersBlock &block) 
-    { 
-        for( size_t i = 0 ; i < ndim_ ; i++ ) {
+    PointXYZParametersBlock &operator=(const PointXYZParametersBlock &block) {
+        for (size_t i = 0; i < ndim_; i++) {
             values_[i] = block.values_[i];
         }
-        return *this; 
+        return *this;
     }
 
     Eigen::Affine3d getPose() {
@@ -76,12 +76,10 @@ public:
         return plmk;
     }
 
-    inline double* values() {  
-        return values_; 
-    }
+    inline double *values() { return values_; }
 
     static const size_t ndim_ = 3;
-    double values_[ndim_] = {0.,0.,0.};
+    double values_[ndim_]     = {0., 0., 0.};
 };
 
-}
+} // namespace isae

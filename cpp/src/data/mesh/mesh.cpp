@@ -239,7 +239,7 @@ void Mesh3D::projectMesh() {
             T_w_vtx.translation()   = vtx->getVertexPosition();
 
             // Check only infinite values (we can use triangles outside of the image)
-            if (_cam0->project(T_w_vtx, vtx->getLmk()->getModel(), Eigen::Vector3d::Ones(), p2ds)) {
+            if (_cam0->project(T_w_vtx, vtx->getLmk()->getModel(), p2ds)) {
 
                 triangle_2d.push_back(p2ds.at(0));
             }
@@ -308,7 +308,6 @@ bool Mesh3D::checkPolygonTri(std::shared_ptr<Polygon> polygon3d, FeatPolygon pol
 
                 if (_cam1->project(T_w_p3d,
                                    polygon3d->getVertices().at(0)->getLmk()->getModel(),
-                                   Eigen::Vector3d::Ones(),
                                    p2ds1)) {
                     pixels_img1.push_back(_img1.at<uint8_t>(p2ds1.at(0)(1), p2ds1.at(0)(0)));
                     pixels_img0.push_back(_img0.at<uint8_t>(pt(1), pt(0)));
@@ -363,7 +362,7 @@ bool Mesh3D::checkPolygonArea(std::shared_ptr<Polygon> polygon, double area2d) {
     std::vector<Eigen::Vector2d> p2ds;
     Eigen::Vector2d b0, b1;
 
-    if (!_cam0->project(T_w_b, polygon->getVertices().at(0)->getLmk()->getModel(), Eigen::Vector3d::Ones(), p2ds))
+    if (!_cam0->project(T_w_b, polygon->getVertices().at(0)->getLmk()->getModel(), p2ds))
         return false;
     b0 = p2ds.at(0);
 
@@ -398,7 +397,7 @@ bool Mesh3D::checkPolygonArea(std::shared_ptr<Polygon> polygon, double area2d) {
             T_w_p3d.translation()   = p3d;
 
             if (_cam1->project(
-                    T_w_p3d, polygon->getVertices().at(0)->getLmk()->getModel(), Eigen::Vector3d::Ones(), p2ds1))
+                    T_w_p3d, polygon->getVertices().at(0)->getLmk()->getModel(), p2ds1))
                 patch1.at<uint8_t>(half_patch_size + j, half_patch_size + i) =
                     _img1.at<uint8_t>((int)p2ds1.at(0)(1), (int)p2ds1.at(0)(0));
             else
@@ -454,7 +453,7 @@ bool Mesh3D::checkPolygon(std::shared_ptr<Polygon> polygon) {
     std::vector<Eigen::Vector2d> p2ds;
     Eigen::Vector2d b0, b1;
 
-    if (!_cam0->project(T_w_b, polygon->getVertices().at(0)->getLmk()->getModel(), Eigen::Vector3d::Ones(), p2ds))
+    if (!_cam0->project(T_w_b, polygon->getVertices().at(0)->getLmk()->getModel(), p2ds))
         return false;
     b0 = p2ds.at(0);
 
@@ -486,7 +485,7 @@ bool Mesh3D::checkPolygon(std::shared_ptr<Polygon> polygon) {
             T_w_p3d.translation()   = p3d;
 
             if (_cam1->project(
-                    T_w_p3d, polygon->getVertices().at(0)->getLmk()->getModel(), Eigen::Vector3d::Ones(), p2ds1))
+                    T_w_p3d, polygon->getVertices().at(0)->getLmk()->getModel(), p2ds1))
                 patch1.at<uint8_t>(half_patch_size + j, half_patch_size + i) =
                     _img1.at<uint8_t>((int)p2ds1.at(0)(1), (int)p2ds1.at(0)(0));
             else
