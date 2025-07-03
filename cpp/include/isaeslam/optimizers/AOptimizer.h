@@ -70,6 +70,10 @@ class AOptimizer {
      */
     bool localMapVIOptimization(std::shared_ptr<isae::LocalMap> &local_map, const size_t fixed_frame_number = 0);
 
+    virtual double localMapVIOptimizationTd(std::shared_ptr<isae::LocalMap> &local_map,
+                                            const size_t fixed_frame_number = 0) {
+        return 0;
+    }
     /*!
      * @brief Visual-Inertial Initialization for a local map.
      * @param local_map The local map to initialize.

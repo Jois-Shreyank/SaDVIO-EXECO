@@ -25,6 +25,9 @@ class AngularAdjustmentCERESAnalytic : public AOptimizer {
                                            Eigen::Affine3d &T_cam0_cam0p,
                                            double info_scale) override;
 
+    double localMapVIOptimizationTd(std::shared_ptr<isae::LocalMap> &local_map,
+                                    const size_t fixed_frame_number = 0) override;
+
   protected:
     uint addResidualsLocalMap(ceres::Problem &problem,
                               ceres::LossFunction *loss_function,
@@ -125,6 +128,94 @@ class AngularErrCeres_pointxd_dx : public ceres::SizedCostFunction<2, 6, 3> {
 
   protected:
     const Eigen::Vector3d _bearing_vector; //!< Bearing vector of the landmark in the sensor frame
+    const Eigen::Affine3d _T_s_f;          //!< Transform of the frame w.r.t. the sensor
+    const Eigen::Affine3d _T_f_w;          //!< Transform of the world w.r.t. the frame
+    const Eigen::Vector3d _t_w_lmk;        //!< Position of the landmark in the world frame
+    const double _sigma;                   //!< Standard deviation for the residuals, used as a weight
+};
+
+class AngularErrCeres_pointxd_td : public ceres::SizedCostFunction<2, 6, 3, 1> {
+  public:
+    AngularErrCeres_pointxd_td(const Eigen::Vector3d &bearing_vector,
+                               const Eigen::Vector3d &velocity,
+                               const Eigen::Affine3d &T_s_f,
+                               const Eigen::Affine3d &T_f_w,
+                               const Eigen::Vector3d &t_w_lmk,
+                               const double sigma = 1)
+        : _bearing_vector(bearing_vector), _velocity(velocity), _T_s_f(T_s_f), _T_f_w(T_f_w), _t_w_lmk(t_w_lmk),
+          _sigma(sigma) {}
+    ~AngularErrCeres_pointxd_td() {}
+
+    virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const {
+        // Get World to sensor transform
+        Eigen::Affine3d dT = geometry::se3_doubleVec6dtoRT(parameters[0]);
+        Eigen::Vector3d dt = Eigen::Map<const Eigen::Vector3d>(parameters[1]);
+        double td          = *parameters[2];
+        double weight      = 1 / (_sigma);
+
+        // Compute tangent plane
+        Eigen::Vector3d b1;
+        if ((_bearing_vector - Eigen::Vector3d(1, 0, 0)).norm() > 1e-5) {
+            b1 = _bearing_vector.cross(Eigen::Vector3d(1, 0, 0));
+            b1.normalize();
+        } else {
+            b1 = _bearing_vector.cross(Eigen::Vector3d(0, 0, 1));
+            b1.normalize();
+        }
+
+        Eigen::Vector3d b2 = b1.cross(_bearing_vector);
+        b2.normalize();
+
+        Eigen::MatrixXd P  = Eigen::MatrixXd::Zero(3, 2);
+        P.col(0)           = b1;
+        P.col(1)           = b2;
+        Eigen::MatrixXd Pt = P.transpose();
+
+        // Get bearing vector taking into account velocity
+        Eigen::Vector3d bearing_vector_up = _bearing_vector + _velocity * td;
+
+        // Get Landmark P3D pose
+        Eigen::Vector3d t_s_lmk = _T_s_f * _T_f_w * dT * (_t_w_lmk + dt);
+        double t_s_lmk_norm     = t_s_lmk.norm();
+        Eigen::Vector3d b_s_lmk = t_s_lmk / t_s_lmk_norm;
+
+        Eigen::Map<Eigen::Vector2d> res(residuals);
+        res = weight * Pt * (b_s_lmk - bearing_vector_up);
+
+        if (jacobians != NULL) {
+
+            Eigen::MatrixXd J_e_lmk = Eigen::MatrixXd::Zero(2, 3);
+            J_e_lmk += Pt * (Eigen::Matrix3d::Identity() - b_s_lmk * b_s_lmk.transpose()) * _T_s_f.linear() *
+                       _T_f_w.linear() / t_s_lmk_norm;
+
+            if (jacobians[0] != NULL) {
+                Eigen::MatrixXd J_bear_frame = Eigen::MatrixXd::Zero(3, 6);
+                J_bear_frame.block(0, 0, 3, 3) =
+                    -dT.linear() * isae::geometry::skewMatrix(_t_w_lmk + dt) *
+                    geometry::so3_rightJacobian(isae::geometry::se3_RTtoVec6d(dT).block<3, 1>(0, 0));
+                J_bear_frame.block(0, 3, 3, 3) = Eigen::Matrix3d::Identity();
+
+                Eigen::Map<Eigen::Matrix<double, 2, 6, Eigen::RowMajor>> J_frame(jacobians[0]);
+                J_frame = weight * J_e_lmk * J_bear_frame;
+            }
+
+            if (jacobians[1] != NULL) {
+                Eigen::Map<Eigen::Matrix<double, 2, 3, Eigen::RowMajor>> J_lmk(jacobians[1]);
+                J_lmk = weight * J_e_lmk * dT.linear();
+            }
+
+            if (jacobians[2] != NULL) {
+                Eigen::Map<Eigen::Vector2d> J_td(jacobians[2]);
+                J_td = -weight * Pt * _velocity;
+            }
+        }
+
+        return true;
+    }
+
+  protected:
+    const Eigen::Vector3d _bearing_vector; //!< Bearing vector of the landmark in the sensor frame
+    const Eigen::Vector3d _velocity;       //!< Velocity of the bearing vector
     const Eigen::Affine3d _T_s_f;          //!< Transform of the frame w.r.t. the sensor
     const Eigen::Affine3d _T_f_w;          //!< Transform of the world w.r.t. the frame
     const Eigen::Vector3d _t_w_lmk;        //!< Position of the landmark in the world frame

@@ -3,6 +3,185 @@
 
 namespace isae {
 
+double AngularAdjustmentCERESAnalytic::localMapVIOptimizationTd(std::shared_ptr<isae::LocalMap> &local_map,
+                                                                const size_t fixed_frame_number) {
+    // Set maps for bookeeping;
+    _map_lmk_ptpar.clear();
+    _map_frame_posepar.clear();
+    _map_frame_velpar.clear();
+    _map_frame_dbapar.clear();
+    _map_frame_dbgpar.clear();
+
+    // Build the Bundle Adjustement Problem
+    ceres::Problem problem;
+    ceres::LossFunction *loss_function = nullptr;
+    auto ordering = new ceres::ParameterBlockOrdering;
+
+    // Get all moving frames
+    std::vector<std::shared_ptr<isae::Frame>> frame_vector;
+    local_map->getLastNFramesIn(local_map->getMapSize(), frame_vector);
+    double td[1] = {0.0};
+    problem.AddParameterBlock(td, 1);
+    ordering->AddElementToGroup(td, 0);
+
+    // Add residuals
+    for (size_t i = 0; i < frame_vector.size(); i++) {
+
+        std::shared_ptr<Frame> frame = frame_vector.at(i);
+        _map_frame_posepar.emplace(frame, PoseParametersBlock(Eigen::Affine3d::Identity()));
+
+        problem.AddParameterBlock(_map_frame_posepar.at(frame).values(), 6);
+        ordering->AddElementToGroup(_map_frame_posepar.at(frame).values(), 1);
+
+        // Set parameter block constant for fixed frames
+        if ((int)i > (int)(frame_vector.size() - fixed_frame_number - 1)) {
+            problem.SetParameterBlockConstant(_map_frame_posepar.at(frame).values());
+        }
+
+        // Had a prior factor if it exists
+        if (frame->hasPrior()) {
+            ceres::CostFunction *cost_fct =
+                new PosePriordx(frame->getWorld2FrameTransform(), frame->getPrior(), frame->getInfPrior().asDiagonal());
+            problem.AddResidualBlock(cost_fct, loss_function, _map_frame_posepar.at(frame).values());
+        }
+    }
+
+    // For all the landmarks
+    for (auto &ldmk_list : local_map->getLandmarks()) {
+
+        // Deal with pointxd landmarks
+        if (ldmk_list.first == "pointxd") {
+            // For all landmark
+            for (auto &landmark : ldmk_list.second) {
+
+                if (!landmark->isInitialized() || landmark->isOutlier())
+                    continue;
+
+                // Add parameter block for each landmark
+                _map_lmk_ptpar.emplace(landmark, PointXYZParametersBlock(Eigen::Vector3d::Zero()));
+
+                problem.AddParameterBlock(_map_lmk_ptpar.at(landmark).values(), 3);
+                ordering->AddElementToGroup(_map_lmk_ptpar.at(landmark).values(), 0);
+
+                // For all feature
+                std::vector<std::weak_ptr<AFeature>> featuresAssociatedLandmarks = landmark->getFeatures();
+
+                for (std::weak_ptr<AFeature> &wfeature : featuresAssociatedLandmarks) {
+                    std::shared_ptr<AFeature> feature = wfeature.lock();
+                    std::shared_ptr<ImageSensor> cam  = feature->getSensor();
+                    std::shared_ptr<Frame> frame      = cam->getFrame();
+
+                    // Check the consistency of the frame
+                    if (!feature || !frame->isKeyFrame() ||
+                        _map_frame_posepar.find(frame) == _map_frame_posepar.end()) {
+                        continue;
+                    }
+
+                    if (!feature->getVelocity().empty()) {
+                        ceres::CostFunction *cost_fct =
+                            new AngularErrCeres_pointxd_td(feature->getBearingVectors().at(0),
+                                                           feature->getVelocity().at(0),
+                                                           cam->getFrame2SensorTransform(),
+                                                           frame->getWorld2FrameTransform(),
+                                                           landmark->getPose().translation(),
+                                                           (1.0 / cam->getFocal()));
+
+                        problem.AddResidualBlock(cost_fct,
+                                                 loss_function,
+                                                 _map_frame_posepar.at(frame).values(),
+                                                 _map_lmk_ptpar.at(landmark).values(),
+                                                 td);
+                    } else {
+                        ceres::CostFunction *cost_fct =
+                            new AngularErrCeres_pointxd_dx(feature->getBearingVectors().at(0),
+                                                           cam->getFrame2SensorTransform(),
+                                                           frame->getWorld2FrameTransform(),
+                                                           landmark->getPose().translation(),
+                                                           1.0 / cam->getFocal());
+
+                        problem.AddResidualBlock(cost_fct,
+                                                 loss_function,
+                                                 _map_frame_posepar.at(frame).values(),
+                                                 _map_lmk_ptpar.at(landmark).values());
+                    }
+                }
+            }
+        }
+    }
+    addIMUResiduals(problem, loss_function, ordering, frame_vector, fixed_frame_number);
+    addMarginalizationResiduals(problem, loss_function, ordering);
+
+    // Solve the problem we just built
+    ceres::Solver::Options options;
+    options.linear_solver_ordering.reset(ordering);
+    options.trust_region_strategy_type         = ceres::LEVENBERG_MARQUARDT;
+    options.linear_solver_type                 = ceres::SPARSE_NORMAL_CHOLESKY;
+    options.max_num_iterations                 = 20;
+    options.minimizer_progress_to_stdout       = false;
+    options.use_explicit_schur_complement      = true;
+    options.sparse_linear_algebra_library_type = ceres::SUITE_SPARSE;
+    options.function_tolerance                 = 1.e-3;
+    options.num_threads                        = 4;
+
+    ceres::Solver::Summary summary;
+    ceres::Solve(options, &problem, &summary);
+
+    // Update state
+    for (auto &frame_posepar : _map_frame_posepar) {
+        frame_posepar.first->setWorld2FrameTransform(frame_posepar.first->getWorld2FrameTransform() *
+                                                     frame_posepar.second.getPose());
+    }
+
+    for (auto &lmk_posepar : _map_lmk_posepar) {
+        lmk_posepar.first->setPose(lmk_posepar.first->getPose() * lmk_posepar.second.getPose());
+    }
+
+    for (auto &lmk_ptpar : _map_lmk_ptpar) {
+        lmk_ptpar.first->setPose(lmk_ptpar.first->getPose() * lmk_ptpar.second.getPose());
+    }
+
+    // For IMU
+    for (auto &frame_velpar : _map_frame_velpar) {
+        frame_velpar.first->getIMU()->setVelocity(frame_velpar.first->getIMU()->getVelocity() +
+                                                  frame_velpar.second.getPose().translation());
+    }
+
+    for (auto &frame_dbapar : _map_frame_dbapar) {
+        frame_dbapar.first->getIMU()->setBa(frame_dbapar.first->getIMU()->getBa() +
+                                            frame_dbapar.second.getPose().translation());
+    }
+
+    for (auto &frame_dbgpar : _map_frame_dbgpar) {
+        frame_dbgpar.first->getIMU()->setBg(frame_dbgpar.first->getIMU()->getBg() +
+                                            frame_dbgpar.second.getPose().translation());
+    }
+
+    // Update deltas with IMU biases
+    for (auto &frame : frame_vector) {
+        if (!frame->getIMU())
+            continue;
+
+        if (!frame->getIMU()->getLastKF())
+            continue;
+
+        std::shared_ptr<Frame> previous_frame = frame->getIMU()->getLastKF();
+
+        if (_map_frame_dbapar.find(previous_frame) != _map_frame_dbapar.end()) {
+            frame->getIMU()->biasDeltaCorrection(_map_frame_dbapar.at(previous_frame).getPose().translation(),
+                                                 _map_frame_dbgpar.at(previous_frame).getPose().translation());
+        }
+    }
+
+    // Set maps for bookeeping;
+    _map_lmk_ptpar.clear();
+    _map_frame_posepar.clear();
+    _map_frame_velpar.clear();
+    _map_frame_dbapar.clear();
+    _map_frame_dbgpar.clear();
+
+    return td[0];
+}
+
 uint AngularAdjustmentCERESAnalytic::addSingleFrameResiduals(ceres::Problem &problem,
                                                              ceres::LossFunction *loss_function,
                                                              std::shared_ptr<Frame> &frame,
@@ -1065,10 +1244,10 @@ Eigen::MatrixXd AngularAdjustmentCERESAnalytic::marginalizeRelative(std::shared_
         J.block(0, 15, 6, 6) = block_relpose._jacobians.at(1);
         cov                  = J * _marginalization->_Sigma_k * J.transpose();
     } else if (_marginalization->_n == 12) {
-        Eigen::MatrixXd J    = Eigen::MatrixXd::Zero(6, 12);
-        J.block(0, 0, 6, 6)  = block_relpose._jacobians.at(0);
+        Eigen::MatrixXd J   = Eigen::MatrixXd::Zero(6, 12);
+        J.block(0, 0, 6, 6) = block_relpose._jacobians.at(0);
         J.block(0, 6, 6, 6) = block_relpose._jacobians.at(1);
-        cov                  = J * _marginalization->_Sigma_k * J.transpose();
+        cov                 = J * _marginalization->_Sigma_k * J.transpose();
     } else {
         std::cout << _marginalization->_n << std::endl;
     }

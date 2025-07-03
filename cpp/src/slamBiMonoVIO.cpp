@@ -415,7 +415,6 @@ bool SLAMBiMonoVIO::frontEndStep() {
             _avg_clean_t     = (_avg_clean_t * (_nframes - 1) + dt_filter) / _nframes;
         }
 
-
         // Compute velocity and motion model
         _6d_velocity =
             (geometry::se3_RTtoVec6d(getLastKF()->getWorld2FrameTransform() * _frame->getFrame2WorldTransform())) / dt;
@@ -514,6 +513,11 @@ bool SLAMBiMonoVIO::frontEndStep() {
         float lmk_dt    = isae::timer::silentToc();
         _avg_lmk_init_t = (_avg_lmk_init_t * (_nkeyframes - 1) + lmk_dt) / _nkeyframes;
 
+        if (_slam_param->_config.estimate_td) {
+            computeFeatureVelocity(_matches_in_time);
+            computeFeatureVelocity(_matches_in_time_lmk);
+        }
+
         // Send frame to optim to optimizer
         _frame_to_optim = _frame;
         _last_IMU       = _frame_to_optim->getIMU();
@@ -529,7 +533,9 @@ bool SLAMBiMonoVIO::frontEndStep() {
         std::cout << "Reinitializing SLAM after " << _successive_fails << " successive fails or too far from last KF"
                   << std::endl;
         std::cout << "IMU dT : \n" << dT.matrix() << std::endl;
-        std::cout << "pnp dT : \n" << (getLastKF()->getWorld2FrameTransform() * _frame->getFrame2WorldTransform()).matrix() << "\n ---" << std::endl;
+        std::cout << "pnp dT : \n"
+                  << (getLastKF()->getWorld2FrameTransform() * _frame->getFrame2WorldTransform()).matrix() << "\n ---"
+                  << std::endl;
 
         _is_init = false;
         _local_map->reset();
@@ -580,7 +586,15 @@ bool SLAMBiMonoVIO::backEndStep() {
 
         // Optimize Local Map
         isae::timer::tic();
-        _slam_param->getOptimizerBack()->localMapVIOptimization(_local_map, _local_map->getFixedFrameNumber());
+        if (_slam_param->_config.estimate_td) {
+            double td = _slam_param->getOptimizerBack()->localMapVIOptimizationTd(_local_map,
+                                                                                  _local_map->getFixedFrameNumber());
+            _slam_param->getDataProvider()->getIMUConfig()->dt_imu_cam -= td;
+            std::cout << "Global time offset : " << _slam_param->getDataProvider()->getIMUConfig()->dt_imu_cam
+                      << std::endl;
+        } else {
+            _slam_param->getOptimizerBack()->localMapVIOptimization(_local_map, _local_map->getFixedFrameNumber());
+        }
 
         // Vector6d dV = geometry::se3_RTtoVec6d(
         //     _frame_to_optim->getWorld2FrameTransform() * T_w_f.inverse());

@@ -158,31 +158,6 @@ bool AOptimizer::singleFrameOptimization(std::shared_ptr<isae::Frame> &moving_fr
     ceres::Solver::Summary summary;
     ceres::Solve(options, &problem, &summary);
 
-    // Covariance Estimation
-    // ceres::Covariance::Options options_cov;
-    // ceres::Covariance cov(options_cov);
-
-    // // Select Covariance block
-    // std::vector<std::pair<const double*, const double*> > covariance_blocks;
-    // for (auto &frame_posepar : _map_frame_posepar) {
-    //     covariance_blocks.push_back({frame_posepar.second.values(), frame_posepar.second.values()});
-    // }
-
-    // // Compute Covariance
-    // cov.Compute(covariance_blocks, &problem);
-
-    // // std::cout << "---" << std::endl;
-
-    // // Display
-    // for (auto &frame_posepar : _map_frame_posepar) {
-    //     double cov_pp[6 * 6];
-    //     cov.GetCovarianceBlock(frame_posepar.second.values(), frame_posepar.second.values(), cov_pp);
-
-    //     Eigen::Map<Eigen::Matrix<double, 6, 6, Eigen::RowMajor>> cov_mat_map(cov_pp);
-    //     // std::cout << cov_mat_map << std::endl;
-    // }
-
-
     // Update state
     for (auto &frame_posepar : _map_frame_posepar) {
         frame_posepar.first->setWorld2FrameTransform(frame_posepar.first->getWorld2FrameTransform() *

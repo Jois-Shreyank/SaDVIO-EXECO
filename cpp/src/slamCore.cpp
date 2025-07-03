@@ -65,8 +65,8 @@ void SLAMCore::outlierRemoval() {
 }
 
 void SLAMCore::cleanFeatures(std::shared_ptr<Frame> &f) {
-    // remove feature with outlier ldmk and feature
 
+    // remove feature with outlier ldmk and feature
     isae::typed_vec_features clean_features;
     for (size_t i = 0; i < 1; i++) {
         for (auto tfeat : f->getSensors().at(i)->getFeatures()) {
@@ -255,8 +255,7 @@ void SLAMCore::predictFeature(std::vector<std::shared_ptr<AFeature>> features,
             std::vector<Eigen::Vector2d> predicted_p2ds;
 
             bool success;
-            success = sensor->project(
-                T_w_lmk, feature->getLandmark().lock()->getModel(), predicted_p2ds);
+            success = sensor->project(T_w_lmk, feature->getLandmark().lock()->getModel(), predicted_p2ds);
 
             if (success && std::isfinite(predicted_p2ds.at(0).x()) && std::isfinite(predicted_p2ds.at(0).y())) {
                 features_init.push_back(std::make_shared<AFeature>(predicted_p2ds));
@@ -280,6 +279,33 @@ void SLAMCore::predictFeature(std::vector<std::shared_ptr<AFeature>> features,
             continue;
         else
             features_init.push_back(feature);
+    }
+}
+
+void SLAMCore::computeFeatureVelocity(typed_vec_match &matches) {
+
+    for (auto &match_vec : matches) {
+
+        if (match_vec.second.empty())
+            continue;
+        
+        if (!match_vec.second.at(0).second->getSensor() || !match_vec.second.at(0).first->getSensor())
+            continue;
+
+        double dt = (double)(match_vec.second.at(0).second->getSensor()->getFrame()->getTimestamp() -
+                             match_vec.second.at(0).first->getSensor()->getFrame()->getTimestamp()) *
+                    1e-9;
+        for (auto &match : match_vec.second) {
+            
+            std::vector<Eigen::Vector3d> vel_vec;
+            for (uint i = 0; i < match.first->getBearingVectors().size(); i++) {
+                Eigen::Vector3d velocity =
+                    (match.second->getBearingVectors().at(i) - match.first->getBearingVectors().at(i)) / dt;
+                vel_vec.push_back(velocity);
+            }
+            match.first->setVelocity(vel_vec);
+
+        }
     }
 }
 
@@ -421,9 +447,9 @@ bool SLAMCore::predict(std::shared_ptr<Frame> &f) {
         return false;
     } else {
 
-        // Check if the pose is valid 
+        // Check if the pose is valid
         if (T_const.translation().norm() > 0.1) {
-            double delta_norm = (geometry::se3_RTtoVec6d(T_last_curr) - geometry::se3_RTtoVec6d(T_const)).norm() / 
+            double delta_norm = (geometry::se3_RTtoVec6d(T_last_curr) - geometry::se3_RTtoVec6d(T_const)).norm() /
                                 geometry::se3_RTtoVec6d(T_const).norm();
             if (delta_norm > 10) {
                 std::cerr << "Predict fails, PnP pose is not valid" << std::endl;
@@ -457,11 +483,10 @@ void SLAMCore::profiling() {
                << "T_wf(13), T_wf(20), T_wf(21), T_wf(22), T_wf(23)\n";
         fw_res.close();
 
-        // std::ofstream fw_res1("log_slam/info_mat.csv", std::ofstream::out | std::ofstream::trunc);
-        // fw_res1 << "Im(00), Im(11), Im(22), Im(33), Im(44), Im(55), "
-        //        << "If(00), If(11), If(22), If(33), If(44), If(55), "
-        //        << "t_norm, r_norm, n_lmk\n";
-        // fw_res1.close();
+        std::ofstream fw_res1("log_slam/cov_mat.csv", std::ofstream::out | std::ofstream::trunc);
+        fw_res1 << "timestamp (ns), timestamp previous (ns), cov(00), cov(11), cov(22), cov(33), "
+                << "cov(44), cov(55), parallax, nb_tracks, nb_outliers, t(0), t(1), t(3), r(0), r(1), r(2), vel_norm \n";
+        fw_res1.close();
 
         // For timing statistics
         // // Clean profiling file
@@ -495,6 +520,23 @@ void SLAMCore::profiling() {
             fw_res << f->getTimestamp() << "," << _nframes << "," << R(0, 0) << "," << R(0, 1) << "," << R(0, 2) << ","
                    << twc.x() << "," << R(1, 0) << "," << R(1, 1) << "," << R(1, 2) << "," << twc.y() << "," << R(2, 0)
                    << "," << R(2, 1) << "," << R(2, 2) << "," << twc.z() << "\n";
+            fw_res.close();
+        }
+
+        if (_local_map->getFrames().size() > 2) {
+            std::ofstream fw_res("log_slam/cov_mat.csv", std::ofstream::out | std::ofstream::app);
+            std::shared_ptr<Frame> f  = _frame_to_optim;
+            std::shared_ptr<Frame> fp = _local_map->getFrames().at(_local_map->getFrames().size() - 2);
+            Eigen::MatrixXd cov       = f->getdTCov();
+            Eigen::Affine3d T_fp_f    = fp->getWorld2FrameTransform() * f->getFrame2WorldTransform();
+            Eigen::Vector3d t         = T_fp_f.translation();
+            Eigen::Vector3d r         = geometry::log_so3(T_fp_f.rotation());
+            uint nb_lmk               = _matches_in_time_lmk["pointxd"].size() + _matches_in_time["pointxd"].size();
+            double vel_norm = _6d_velocity.block(2, 0, 3, 1).norm();
+            fw_res << f->getTimestamp() << "," << fp->getTimestamp() << "," << cov(0, 0) << "," << cov(1, 1) << ","
+                   << cov(2, 2) << "," << cov(3, 3) << "," << cov(4, 4) << "," << cov(5, 5) << "," << _parallax << ","
+                   << nb_lmk << "," << t(0) << "," << t(1) << "," << t(2) << "," << r(0) << ","
+                   << r(1) << "," << r(2) << "," << vel_norm << "\n";
             fw_res.close();
         }
 

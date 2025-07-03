@@ -363,7 +363,7 @@ void EUROCGrabber::load_filenames() {
         }
 
         // Fill the queues
-        _imu_timestamp_queue.push(std::stod(line_vector[0]));
+        _imu_timestamp_queue.push(std::stod(line_vector[0]) + 0.015 * 1e9);
         Eigen::Vector3d gyr(std::stod(line_vector[1]), std::stod(line_vector[2]), std::stod(line_vector[3]));
         Eigen::Vector3d acc(std::stod(line_vector[4]), std::stod(line_vector[5]), std::stod(line_vector[6]));
         if (_prov->getIMUConfig())
@@ -433,9 +433,9 @@ bool EUROCGrabber::addNextFrame() {
         } else {
 
             std::string path_img0 = _folder_path + "/cam0/data/" +
-                                    _cam0_filename_queue.front();
+                                    std::to_string((uint64_t)cam0_ts) + ".png";  // _cam0_filename_queue.front();
             std::string path_img1 = _folder_path + "/cam1/data/" +
-                                    _cam1_filename_queue.front();
+                                    std::to_string((uint64_t)cam1_ts) + ".png"; // _cam1_filename_queue.front();
             cv::Mat img_left = cv::imread(path_img0, cv::IMREAD_GRAYSCALE);
             if (img_left.empty()) {
                 std::cerr << path_img0 << " not opened " << std::endl;

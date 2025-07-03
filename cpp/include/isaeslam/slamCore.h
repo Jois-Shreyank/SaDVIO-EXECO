@@ -92,6 +92,8 @@ class SLAMCore {
      */
     void cleanFeatures(std::shared_ptr<Frame> &f);
 
+    void computeFeatureVelocity(typed_vec_match &matches);
+
     /*!
      * @brief Predicts the position of the features and matches all the features between sensors
      *
