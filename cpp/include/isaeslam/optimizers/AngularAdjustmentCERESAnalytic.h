@@ -134,6 +134,13 @@ class AngularErrCeres_pointxd_dx : public ceres::SizedCostFunction<2, 6, 3> {
     const double _sigma;                   //!< Standard deviation for the residuals, used as a weight
 };
 
+/*!
+ * @brief Angular error cost function for a point landmark in the sensor frame, with time delta.
+ * Parameters are delta update of the frame pose, the landmark position and the time delta.
+ *
+ * The cost function uses 2D feature velocity to estimate the time delay, as proposed in "Online temporal calibration 
+ * for monocular visual-inertial systems" by Qin et al Source: https://arxiv.org/abs/1808.00692
+ */
 class AngularErrCeres_pointxd_td : public ceres::SizedCostFunction<2, 6, 3, 1> {
   public:
     AngularErrCeres_pointxd_td(const Eigen::Vector3d &bearing_vector,

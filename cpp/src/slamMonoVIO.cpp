@@ -364,6 +364,8 @@ bool SLAMMonoVIO::step_init() {
             _avg_detect_t = (_avg_detect_t * (_nkeyframes - 1) + isae::timer::silentToc()) / _nkeyframes;
         }
 
+        
+
         // Recover Map Landmark
         isae::timer::tic();
         uint resu = recoverFeatureFromMapLandmarks(_local_map, _frame);
@@ -556,6 +558,11 @@ bool SLAMMonoVIO::frontEndStep() {
         _avg_lmk_resur_t = (_avg_lmk_resur_t * (_nkeyframes - 1) + isae::timer::silentToc()) / _nkeyframes;
         _avg_resur_lmk   = (_avg_lmk_resur_t * (_nkeyframes - 1) + resu) / _nkeyframes;
 
+        if (_slam_param->_config.estimate_td) {
+            computeFeatureVelocity(_matches_in_time);
+            computeFeatureVelocity(_matches_in_time_lmk);
+        }
+
         // Wait the end of optim
         while (_frame_to_optim != nullptr) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -605,17 +612,24 @@ bool SLAMMonoVIO::backEndStep() {
                 _local_map->discardLastFrame();
                 _map_mutex.unlock();
             }
-
         }
 
         // Optimize Local Map
         isae::timer::tic();
-        _slam_param->getOptimizerBack()->localMapVIOptimization(_local_map, _local_map->getFixedFrameNumber());
+        if (_slam_param->_config.estimate_td) {
+            double td = _slam_param->getOptimizerBack()->localMapVIOptimizationTd(_local_map,
+                                                                                  _local_map->getFixedFrameNumber());
+            _slam_param->getDataProvider()->getIMUConfig()->dt_imu_cam -= td;
+            std::cout << "Global time offset : " << _slam_param->getDataProvider()->getIMUConfig()->dt_imu_cam
+                      << std::endl;
+        } else {
+            _slam_param->getOptimizerBack()->localMapVIOptimization(_local_map, _local_map->getFixedFrameNumber());
+        }
         _avg_wdw_opt_t = (_avg_wdw_opt_t * (_nkeyframes - 1) + isae::timer::silentToc()) / _nkeyframes;
 
         // Update current IMU biases after optimization
         _frame_to_optim->getIMU()->updateBiases();
-        
+
         // profiling
         profiling();
 

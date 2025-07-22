@@ -14,6 +14,7 @@
 #include "isaeslam/data/mesh/mesher.h"
 #include "isaeslam/data/sensors/ASensor.h"
 #include "isaeslam/data/sensors/DoubleSphere.h"
+#include "isaeslam/dataproviders/adataprovider.h"
 #include "isaeslam/estimator/ESKFEstimator.h"
 #include "isaeslam/estimator/EpipolarPoseEstimator.h"
 #include "isaeslam/featuredetectors/opencv_detectors/cvORBFeatureDetector.h"
@@ -22,7 +23,6 @@
 #include "isaeslam/landmarkinitializer/Point3DlandmarkInitializer.h"
 #include "isaeslam/optimizers/AngularAdjustmentCERESAnalytic.h"
 #include "isaeslam/slamParameters.h"
-#include "isaeslam/dataproviders/adataprovider.h"
 #include "isaeslam/typedefs.h"
 #include "utilities/timer.h"
 
@@ -39,7 +39,7 @@ namespace isae {
  */
 class SLAMCore {
   public:
-    SLAMCore(){};
+    SLAMCore() {};
     SLAMCore(std::shared_ptr<isae::SLAMParameters> slam_param);
 
     /*!
@@ -92,6 +92,10 @@ class SLAMCore {
      */
     void cleanFeatures(std::shared_ptr<Frame> &f);
 
+    /*!
+     * @brief Computes the velocity of the features in the frame, it is used to estimate the time delay between IMU and
+     * cameras
+     */
     void computeFeatureVelocity(typed_vec_match &matches);
 
     /*!
@@ -324,7 +328,7 @@ class SLAMMono : public SLAMCore {
 class SLAMNonOverlappingFov : public SLAMCore {
 
   public:
-    SLAMNonOverlappingFov(){};
+    SLAMNonOverlappingFov() {};
     SLAMNonOverlappingFov(std::shared_ptr<SLAMParameters> slam_param) : SLAMCore(slam_param) {}
 
     bool init() override;
