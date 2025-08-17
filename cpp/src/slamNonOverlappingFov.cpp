@@ -325,6 +325,7 @@ bool SLAMNonOverlappingFov::backEndStep() {
         if (_slam_param->_config.mesh3D) {
             _mesher->addNewKF(_frame);
             _mesh_to_display = _mesher->_mesh_3d;
+            _global_mesh_to_display = _mesher->_global_mesh_3d;
         }
 
         // Discard the last frame

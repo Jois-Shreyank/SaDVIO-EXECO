@@ -8,13 +8,14 @@ Panels:
         - /Status1
         - /Grid1
         - /Pose1
+        - /Marker4
+        - /Marker4/Topic1
         - /Map1
         - /Odometry1
         - /Odometry1/Shape1
         - /Path1
         - /Path1/Offset1
         - /TF1
-        - /TF1/Status1
         - /TF1/Frames1
         - /TF1/Tree1
       Splitter Ratio: 0.5
@@ -119,10 +120,10 @@ Visualization Manager:
         Value: /map_local_cloud
       Value: true
     - Class: rviz_default_plugins/Marker
-      Enabled: false
+      Enabled: true
       Name: Marker
       Namespaces:
-        {}
+        "": true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -130,20 +131,20 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /mesh
-      Value: false
+      Value: true
     - Class: rviz_default_plugins/Marker
-      Enabled: false
+      Enabled: true
       Name: Marker
       Namespaces:
-        {}
+        "": true
       Topic:
         Depth: 5
         Durability Policy: Volatile
         Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /map_global_cloud
-      Value: false
+        Value: /global_mesh
+      Value: true
     - Alpha: 0.699999988079071
       Class: rviz_default_plugins/Map
       Color Scheme: costmap
@@ -324,7 +325,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/ThirdPersonFollower
-      Distance: 12.913671493530273
+      Distance: 28.108657836914062
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -339,10 +340,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: -0.015203733928501606
+      Pitch: 0.584796130657196
       Target Frame: robot
       Value: ThirdPersonFollower (rviz_default_plugins)
-      Yaw: 2.740445852279663
+      Yaw: 0.1658942550420761
     Saved: ~
 Window Geometry:
   Displays:

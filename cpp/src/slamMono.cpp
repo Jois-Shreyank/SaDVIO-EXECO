@@ -282,6 +282,7 @@ bool SLAMMono::backEndStep() {
         if (_slam_param->_config.mesh3D) {
             _mesher->addNewKF(_frame_to_optim);
             _mesh_to_display = _mesher->_mesh_3d;
+            _global_mesh_to_display = _mesher->_global_mesh_3d;
         }
 
         // Marginalization (+ sparsification) of the last frame

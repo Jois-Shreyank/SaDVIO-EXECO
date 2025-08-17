@@ -31,6 +31,7 @@
 #include "isaeslam/slamParameters.h"
 #include "isaeslam/typedefs.h"
 #include "utilities/timer.h"
+#include "isaeslam/data/mesh/global_mesh.h"
 
 namespace isae {
 
@@ -63,6 +64,7 @@ class SLAMCore {
     std::shared_ptr<isae::LocalMap> _local_map_to_display;
     std::shared_ptr<isae::GlobalMap> _global_map_to_display;
     std::shared_ptr<Mesh3D> _mesh_to_display;
+    std::shared_ptr<GlobalMesh> _global_mesh_to_display;
 
     // Feature detection
     typed_vec_features detectFeatures(std::shared_ptr<ImageSensor> &sensor);

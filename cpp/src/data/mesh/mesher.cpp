@@ -34,6 +34,7 @@ Mesher::Mesher(std::string slam_mode, double ZNCC_tsh, double max_length_tsh) : 
 
     // Init mesh 3D
     _mesh_3d    = std::make_shared<Mesh3D>(ZNCC_tsh, max_length_tsh);
+    _global_mesh_3d = std::make_shared<GlobalMesh>();
     _avg_mesh_t = 0;
     _n_kf       = 0;
 
@@ -85,6 +86,7 @@ void Mesher::run() {
             auto t1     = std::chrono::high_resolution_clock::now();
             double dt   = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
             _avg_mesh_t = (_avg_mesh_t * ((double)_n_kf - 1) + dt) / (double)_n_kf;
+            _global_mesh_3d->addPolygons(_mesh_3d->getPolygonVector());
 
             // std::ofstream fw_mesh("log_slam/timing_mesh.csv",
             //                       std::ofstream::out | std::ofstream::app);

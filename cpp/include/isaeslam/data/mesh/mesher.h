@@ -8,6 +8,7 @@
 
 #include "utilities/timer.h"
 #include "isaeslam/data/mesh/mesh.h"
+#include "isaeslam/data/mesh/global_mesh.h"
 #include "isaeslam/data/sensors/ASensor.h"
 #include "isaeslam/featuredetectors/aFeatureDetector.h"
 
@@ -28,6 +29,7 @@ class Mesher {
     std::queue<std::shared_ptr<Frame>> _kf_queue;
     std::shared_ptr<Frame> _curr_kf;
     std::shared_ptr<Mesh3D> _mesh_3d;
+    std::shared_ptr<GlobalMesh> _global_mesh_3d;
     std::string _slam_mode;
     double _avg_mesh_t;
     int _n_kf;

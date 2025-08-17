@@ -21,6 +21,7 @@
 #include <visualization_msgs/msg/marker.hpp>
 
 #include "isaeslam/data/mesh/mesh.h"
+#include "isaeslam/data/mesh/global_mesh.h"
 #include "isaeslam/slamCore.h"
 
 // namespace isae {
@@ -93,6 +94,7 @@ class RosVisualizer : public rclcpp::Node {
         _pub_local_map_lines        = this->create_publisher<visualization_msgs::msg::Marker>("map_local_lines", 1000);
         _pub_global_map_lines       = this->create_publisher<visualization_msgs::msg::Marker>("map_global_lines", 1000);
         _pub_marker                 = this->create_publisher<visualization_msgs::msg::Marker>("mesh", 1000);
+        _pub_global_mesh            = this->create_publisher<visualization_msgs::msg::Marker>("global_mesh", 1000);
         _pub_cloud                  = this->create_publisher<sensor_msgs::msg::PointCloud2>("point_cloud", 1000);
         _tf_broadcaster             = std::make_shared<tf2_ros::TransformBroadcaster>(this);
 
@@ -157,6 +159,17 @@ class RosVisualizer : public rclcpp::Node {
         _mesh_line_list.scale.x = 1.0;
         _mesh_line_list.scale.y = 1.0;
         _mesh_line_list.scale.z = 1.0;
+
+        // Design for the global mesh marker
+        _global_mesh_line_list.type = visualization_msgs::msg::Marker::TRIANGLE_LIST;
+        _global_mesh_line_list.id = 3;
+        _global_mesh_line_list.color.a = 0.5;
+        _global_mesh_line_list.color.r = 0.0;
+        _global_mesh_line_list.color.g = 0.0;
+        _global_mesh_line_list.color.b = 1.0;
+        _global_mesh_line_list.scale.x = 1.0;
+        _global_mesh_line_list.scale.y = 1.0;
+        _global_mesh_line_list.scale.z = 1.0;
     }
 
     void drawMatchesTopBottom(cv::Mat Itop,
@@ -566,6 +579,43 @@ class RosVisualizer : public rclcpp::Node {
         _pub_cloud->publish(*pc2_msg_);
     }
 
+    void publishGlobalMesh(const std::shared_ptr<isae::GlobalMesh> mesh) {
+        _global_mesh_line_list.points.clear();
+        _global_mesh_line_list.colors.clear();
+
+        _global_mesh_line_list.header.frame_id = "world";
+        _global_mesh_line_list.header.stamp = rclcpp::Node::now();
+
+        for (auto &polygon : mesh->getPolygonVector()) {
+            std::vector<geometry_msgs::msg::Point> p_vector;
+            std::vector<std_msgs::msg::ColorRGBA> c_vector;
+            for (auto &vertex : polygon->getVertices()) {
+                geometry_msgs::msg::Point p;
+                Eigen::Vector3d lmk_coord = vertex->getVertexPosition();
+                p.x = lmk_coord.x();
+                p.y = lmk_coord.y();
+                p.z = lmk_coord.z();
+                p_vector.push_back(p);
+
+                std_msgs::msg::ColorRGBA color;
+                double trav_score = polygon->getPolygonNormal().dot(Eigen::Vector3d(0, 0, 1));
+                color.r = (1 - trav_score); 
+                color.g = 0;       
+                color.b = trav_score;
+                color.a = 0.5;              
+                c_vector.push_back(color);
+            }
+            _global_mesh_line_list.points.push_back(p_vector.at(0));
+            _global_mesh_line_list.colors.push_back(c_vector.at(0));
+            _global_mesh_line_list.points.push_back(p_vector.at(1));
+            _global_mesh_line_list.colors.push_back(c_vector.at(1));
+            _global_mesh_line_list.points.push_back(p_vector.at(2));
+            _global_mesh_line_list.colors.push_back(c_vector.at(2));
+        }
+    _pub_global_mesh->publish(_global_mesh_line_list);
+    }
+
+
     void runVisualizer(std::shared_ptr<isae::SLAMCore> SLAM) {
 
         while (true) {
@@ -587,12 +637,17 @@ class RosVisualizer : public rclcpp::Node {
                 SLAM->_mesh_to_display.reset();
             }
 
+            if (SLAM->_global_mesh_to_display) {
+                publishGlobalMesh(SLAM->_global_mesh_to_display);
+                SLAM->_global_mesh_to_display.reset();
+            }
+
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
 
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr _pub_marker, _pub_vo_traj, _pub_global_map_cloud,
-        _pub_local_map_cloud, _pub_local_map_cloud1, _pub_global_map_lines, _pub_local_map_lines;
+        _pub_local_map_cloud, _pub_local_map_cloud1, _pub_global_map_lines, _pub_local_map_lines, _pub_global_mesh;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pub_image_kps, _pub_image_matches_in_time,
         _pub_image_matches_in_frame;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr _pub_cloud;
@@ -601,6 +656,7 @@ class RosVisualizer : public rclcpp::Node {
     visualization_msgs::msg::Marker _vo_traj_msg;
     visualization_msgs::msg::Marker _points_local, _points_global, _points_local1, _lines_local, _lines_global;
     visualization_msgs::msg::Marker _mesh_line_list;
+    visualization_msgs::msg::Marker _global_mesh_line_list;
 };
 
 // } // namespace isae
