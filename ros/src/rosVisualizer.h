@@ -602,7 +602,7 @@ class RosVisualizer : public rclcpp::Node {
                 color.r = (1 - trav_score); 
                 color.g = 0;       
                 color.b = trav_score;
-                color.a = 0.5;              
+                color.a = 1.0;              
                 c_vector.push_back(color);
             }
             _global_mesh_line_list.points.push_back(p_vector.at(0));
