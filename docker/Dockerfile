@@ -34,6 +34,11 @@ RUN apt-get update && apt-get install -y \
     ros-humble-twist-mux \
     ros-humble-usb-cam \
     ros-humble-xacro \
+    ros-humble-tf2 \
+    ros-humble-tf2-sensor-msgs \
+    ros-humble-tf2-geometry-msgs \
+    ros-humble-mavros* \
+    libyaml-cpp-dev \
     ruby-dev \
     rviz \
     tmux \
@@ -67,3 +72,4 @@ RUN cd SaDVIO/cpp && \
 RUN apt-get update && apt-get install -y zip
 RUN wget http://robotics.ethz.ch/~asl-datasets/ijrr_euroc_mav_dataset/vicon_room1/V1_01_easy/V1_01_easy.zip
 RUN mkdir -p $DIRPATH/euroc && unzip V1_01_easy.zip -d $DIRPATH/V1_01_easy
+RUN echo 'source /opt/ros/$ROS_DISTRO/setup.bash' >> ~/.bashrc

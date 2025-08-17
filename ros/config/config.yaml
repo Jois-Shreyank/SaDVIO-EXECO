@@ -3,10 +3,10 @@
 #################################################################################
 
 ## dataset_id in {kitti, eth, gazebo_fisheye, gazebo_pinhole, oivio, isae}
-dataset_id : "gvins"
+dataset_id : "airsim"
 
 ## slam mode in {mono, bimono, nofov, monovio, bimonovio}
-slam_mode : "bimono"
+slam_mode : "bimonovio"
 enable_visu : 1
 multithreading : 0
 
@@ -33,11 +33,11 @@ tracker: "klt"
 min_kf_number: 1                # number of keyframes that are added by default when the map starts
 max_kf_number: 12               # size of the sliding window
 fixed_frame_number: 1         # number of keyframe that will remain static during windowed BA
-marginalization: 0              # marginalization of old variables or not
-sparsification: 0             # sparsification of the prior or not   
+marginalization: 1              # marginalization of old variables or not
+sparsification: 1             # sparsification of the prior or not   
 
 ## Mesh parameters
-mesh3d: 0                      # mesh3d computation or not 
+mesh3d: 1                      # mesh3d computation or not 
 ZNCC_tsh: 0.8                   # Threshold on ZNCC for triangle filtering
 max_length_tsh: 2               # Threshold on maximum length for triangle filtering
 

@@ -1,0 +1,68 @@
+# General sensor definitions.
+dataset: airsim_kalibr
+ncam: 2
+
+camera_0:
+  topic: /airsim_node_lite/Car1/camera_left_Scene/image
+  # Sensor extrinsics wrt. the body-frame.
+  T_BS:
+    cols: 4
+    rows: 4
+    data: [-0.0011598762351702208, -0.9999978618679914, 0.0017120007489037081, 0.08826361186276095,
+            -0.001919828103230825, -0.0017097719842620318, -0.9999966954644479, 1.0489470765530906,
+            0.9999974844704225, -0.0011631591494685178, -0.0019178408744929265, -1.883771782046261,
+            0.0, 0.0, 0.0, 1.0]
+  
+  # Camera specific definitions.
+  rate_hz: 20
+  resolution: [640, 480]
+  projection_model: pinhole
+  intrinsics: [319.7033085993506, 319.90671554571117, 320.09547040153785, 240.1077254460888] # fu, fv, cu, cv
+  distortion_model: radial-tangential
+  distortion_coefficients: [-0.01863085077253071, 0.00642363223369872, 0.0005196506760404034, 0.0003525419264438707]
+
+camera_1:
+  topic: /airsim_node_lite/Car1/camera_right_Scene/image
+  # Sensor extrinsics wrt. the body-frame.
+  T_BS:
+    cols: 4
+    rows: 4
+    data: [-0.002828128429919724, -0.9999945557568684, 0.0017000430016609336, -0.09388230154447555,
+           -0.0018497850480596045, -0.001694815448832404, -0.9999968529429833, 1.0487930653626243,
+           0.9999942899761278, -0.002831264243763898, -0.0018449818216257075, -1.8844061190369408,
+           0.0, 0.0, 0.0, 1.0]
+  # Camera specific definitions.
+  rate_hz: 20
+  resolution: [640, 480]
+  projection_model: pinhole
+  intrinsics: [319.63503795205725, 319.8621252710119, 320.4337770723065, 240.08245771446656] # fu, fv, cu, cv
+  distortion_model: radial-tangential
+  distortion_coefficients: [-0.01896115378467237, 0.006459017176009887, 0.0005258680819332652, 0.00016126678393648644]
+
+imu:
+  topic: /airsim_node_lite/Car1/imu/IMU
+  # Sensor extrinsics wrt. the body-frame.
+  T_BS:
+    cols: 4
+    rows: 4
+    data: [1.0, 0.0, 0.0, 0.0,
+           0.0, 1.0, 0.0, 0.0,
+           0.0, 0.0, 1.0, 0.0,
+           0.0, 0.0, 0.0, 1.0]
+  
+  rate_hz: 200
+
+  # Inertial sensor noise model parameters (static)
+  gyroscope_noise_density: 0.00015321465299034248 #working = 0.01 #0.01 #0.01 #0.000084    # [ rad / s / sqrt(Hz) ]   ( gyro "white noise" )
+  gyroscope_random_walk: 1.5865469199987431e-06 #working = 0.00001 #0.0001 #0.00001 #0.000001       # [ rad / s^2 / sqrt(Hz) ] ( gyro bias diffusion )
+  accelerometer_noise_density: 0.0041595828586591934 #working = 0.1 #0.1 #0.1 #0.002273  # [ m / s^2 / sqrt(Hz) ]   ( accel "white noise" )
+  accelerometer_random_walk: 2.798141695967881e-05 #working = 0.0001 #0.001 #0.0001 #0.000014    # [ m / s^3 / sqrt(Hz) ].  ( accel bias diffusion )
+  dt_imu_cam: -0.049840464683253066 #1.0 #working = 0.1
+
+  #Accelerometer
+  #accelerometer_noise_density: 0.0041595828586591934 
+  #accelerometer_random_walk: 2.798141695967881e-05 
+
+  #Gyroscope
+  #gyroscope_noise_density: 0.00015321465299034248 
+  #gyroscope_random_walk: 1.5865469199987431e-06 

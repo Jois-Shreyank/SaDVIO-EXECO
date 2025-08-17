@@ -1,0 +1,69 @@
+# General sensor definitions.
+dataset: airsim
+ncam: 2
+
+camera_0:
+  topic: /airsim_node_lite/Car1/camera_left_Scene/image
+  # Sensor extrinsics wrt. the body-frame.
+  T_BS:
+    cols: 4
+    rows: 4
+    data: [0.0, 0.0, 1.0, 0.0, 
+	-1.0, 0.0, 0.0, 0.1, 
+	0.0, -1.0, 0.0, 0.0, 
+	0.0, 0.0, 0.0, 1.0]
+  
+  # Camera specific definitions.
+  rate_hz: 20
+  resolution: [640, 480]
+  projection_model: pinhole
+  intrinsics: [320, 320, 320.0, 240.0] #[319.7033085993506, 319.90671554571117, 320.09547040153785, 240.1077254460888] #[320, 320, 320.0, 240.0] # fu, fv, cu, cv
+  distortion_model: None #radial-tangential #None
+  distortion_coefficients: [0, 0, 0, 0] # [-0.01863085077253071, 0.00642363223369872, 0.0005196506760404034, 0.0003525419264438707] #[0, 0, 0, 0]
+
+camera_1:
+  topic: /airsim_node_lite/Car1/camera_right_Scene/image
+  # Sensor extrinsics wrt. the body-frame.
+  T_BS:
+    cols: 4
+    rows: 4
+    data: [0.0, 0.0, 1.0, 0.0, 
+	-1.0, 0.0, 0.0, -0.1, 
+	0.0, -1.0, 0.0, 0.0, 
+	0.0, 0.0, 0.0, 1.0]
+
+  # Camera specific definitions.
+  rate_hz: 20
+  resolution: [640, 480]
+  projection_model: pinhole
+  intrinsics: [320, 320, 320.0, 240.0] # [319.63503795205725, 319.8621252710119, 320.4337770723065, 240.08245771446656] #[320, 320, 320.0, 240.0] # fu, fv, cu, cv
+  distortion_model: None #radial-tangential #None
+  distortion_coefficients: [0, 0, 0, 0] #[-0.01896115378467237, 0.006459017176009887, 0.0005258680819332652, 0.00016126678393648644] #[0, 0, 0, 0]
+
+imu:
+  topic: /airsim_node_lite/Car1/imu/IMU
+  # Sensor extrinsics wrt. the body-frame.
+  T_BS:
+    cols: 4
+    rows: 4
+    data: [1.0, 0.0, 0.0, 0.0,
+           0.0, 1.0, 0.0, 0.0,
+           0.0, 0.0, 1.0, 0.0,
+           0.0, 0.0, 0.0, 1.0]
+  
+  rate_hz: 200
+
+  # Inertial sensor noise model parameters (static)
+  gyroscope_noise_density: 0.01 #0.00015321465299034248 #working = 0.01 #0.01 #0.01 #0.000084    # [ rad / s / sqrt(Hz) ]   ( gyro "white noise" )
+  gyroscope_random_walk: 0.00001 #1.5865469199987431e-06 #working = 0.00001 #0.0001 #0.00001 #0.000001       # [ rad / s^2 / sqrt(Hz) ] ( gyro bias diffusion )
+  accelerometer_noise_density: 0.1 #0.0041595828586591934 #working = 0.1 #0.1 #0.1 #0.002273  # [ m / s^2 / sqrt(Hz) ]   ( accel "white noise" )
+  accelerometer_random_walk: 0.0001 #2.798141695967881e-05 #working = 0.0001 #0.001 #0.0001 #0.000014    # [ m / s^3 / sqrt(Hz) ].  ( accel bias diffusion )
+  dt_imu_cam: 0.1 #working = 0.1
+
+  #Accelerometer
+  #accelerometer_noise_density: 0.0041595828586591934 
+  #accelerometer_random_walk: 2.798141695967881e-05 
+
+  #Gyroscope
+  #gyroscope_noise_density: 0.00015321465299034248 
+  #gyroscope_random_walk: 1.5865469199987431e-06 
