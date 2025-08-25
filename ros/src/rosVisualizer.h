@@ -11,7 +11,8 @@
 #include <sstream>
 #include <filesystem>
 #include <unordered_map>
-// MODIFICATION: Add mutex for thread safety
+#include <vector>
+#include <cstdlib>
 #include <mutex>
 
 #include "sensor_msgs/point_cloud2_iterator.hpp"
@@ -32,6 +33,8 @@
 #include "isaeslam/data/mesh/mesh.h"
 #include "isaeslam/data/mesh/global_mesh.h"
 #include "isaeslam/slamCore.h"
+#include "lvr2/io/ModelFactory.hpp"
+#include "lvr2/types/MeshBuffer.hpp"
 
 // ... (The convertToPointCloud2 function and the rest of the file up to runVisualizer remains the same) ...
 sensor_msgs::msg::PointCloud2::SharedPtr convertToPointCloud2(const std::vector<Eigen::Vector3d> &points) {
@@ -107,6 +110,7 @@ class RosVisualizer : public rclcpp::Node {
         _pub_global_mesh            = this->create_publisher<visualization_msgs::msg::Marker>("global_mesh", 1000);
         _pub_cloud                  = this->create_publisher<sensor_msgs::msg::PointCloud2>("point_cloud", 1000);
         _tf_broadcaster             = std::make_shared<tf2_ros::TransformBroadcaster>(this);
+        _pub_lvr_reconstructed_mesh = this->create_publisher<visualization_msgs::msg::Marker>("lvr_reconstructed_mesh", 1000);
 
         _vo_traj_msg.type    = visualization_msgs::msg::Marker::LINE_STRIP;
         _vo_traj_msg.color.a = 1.0;
@@ -180,6 +184,19 @@ class RosVisualizer : public rclcpp::Node {
         _global_mesh_line_list.scale.x = 1.0;
         _global_mesh_line_list.scale.y = 1.0;
         _global_mesh_line_list.scale.z = 1.0;
+        
+        // Design for the LVR2 reconstructed mesh
+        _lvr_mesh_marker.type = visualization_msgs::msg::Marker::TRIANGLE_LIST;
+        _lvr_mesh_marker.id = 5; // Use a unique ID
+        _lvr_mesh_marker.header.frame_id = "world";
+        _lvr_mesh_marker.pose.orientation.w = 1.0;
+        _lvr_mesh_marker.scale.x = 1.0;
+        _lvr_mesh_marker.scale.y = 1.0;
+        _lvr_mesh_marker.scale.z = 1.0;
+        _lvr_mesh_marker.color.a = 0.9;
+        _lvr_mesh_marker.color.r = 0.2;
+        _lvr_mesh_marker.color.g = 1.0;
+        _lvr_mesh_marker.color.b = 0.2;
     }
     // ... (All publish functions, drawMatchesTopBottom, etc. are unchanged)
     void drawMatchesTopBottom(cv::Mat Itop,
@@ -677,7 +694,6 @@ class RosVisualizer : public rclcpp::Node {
 
             if (SLAM->_global_map_to_display) {
                 publishGlobalMapCloud(SLAM->_global_map_to_display);
-                // MODIFICATION: Latch the latest valid map pointer before it's reset
                 {
                     std::lock_guard<std::mutex> lock(_map_mutex);
                     _latest_global_map = SLAM->_global_map_to_display;
@@ -695,13 +711,133 @@ class RosVisualizer : public rclcpp::Node {
         _pub_image_matches_in_frame;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr _pub_cloud;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr _pub_vo_pose;
+    rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr _pub_lvr_reconstructed_mesh;
     std::shared_ptr<tf2_ros::TransformBroadcaster> _tf_broadcaster;
     visualization_msgs::msg::Marker _vo_traj_msg;
     visualization_msgs::msg::Marker _points_local, _points_global, _points_local1, _lines_local, _lines_global;
     visualization_msgs::msg::Marker _mesh_line_list;
     visualization_msgs::msg::Marker _global_mesh_line_list;
+    visualization_msgs::msg::Marker _lvr_mesh_marker;
 
-private: 
+private:
+    void reconstructAndPublishLVRMesh(const std::string& cloud_filename, const std::string& mesh_filename)
+    {
+        // // Define file paths
+        //std::string cloud_filename = _log_path + "global_cloud.ply";
+        //std::string mesh_filename = _log_path + "lvr_reconstructed_mesh.ply";
+
+        // // --- 1. Save the point cloud from the global map ---
+        // savePointCloudToPly(map, cloud_filename);
+        // RCLCPP_INFO(this->get_logger(), "Saved point cloud to %s for LVR reconstruction", cloud_filename.c_str());
+
+        // // --- 2. Execute lvr2_reconstruct ---
+        // // IMPORTANT: Replace this with the absolute path to YOUR lvr2_reconstruct executable!
+        static std::atomic_bool recon_running{false};
+        if (recon_running.exchange(true)) {
+            RCLCPP_WARN(this->get_logger(), "LVR reconstruction already running; skipping this cycle.");
+            return;
+        }
+
+        auto reset_flag = std::unique_ptr<void, std::function<void(void*)>>(
+            (void*)1, [&](void*){ recon_running = false; });
+
+        const std::string lvr2_executable_path = "/root/lvr2/build/bin/lvr2_reconstruct";
+
+        std::filesystem::path out_path(mesh_filename);
+        std::filesystem::path out_dir  = out_path.parent_path();
+        std::filesystem::path out_name = out_path.filename();
+
+        // Ensure directory exists
+        std::error_code ec;
+        std::filesystem::create_directories(out_dir, ec);
+        if (ec) {
+            RCLCPP_ERROR(this->get_logger(), "Failed to create output dir %s: %s",
+                     out_dir.string().c_str(), ec.message().c_str());
+            return;
+        }
+
+        std::stringstream command;
+        command << "cd " << out_dir.string()
+                << " && " << lvr2_executable_path
+                << " --inputFile " << cloud_filename
+                << " --outputFile " << out_name.string()
+                << " -v 0.7"; // Your specified voxel size
+
+        RCLCPP_INFO(this->get_logger(), "Executing LVR reconstruction: %s", command.str().c_str());
+        int return_code = std::system(command.str().c_str());
+
+        if (return_code != 0) {
+            RCLCPP_ERROR(this->get_logger(), "lvr2_reconstruct failed with return code %d", return_code);
+            return;
+        }
+
+        RCLCPP_INFO(this->get_logger(), "LVR reconstruction successful. Loading mesh from %s", mesh_filename.c_str());
+
+        // --- 3. Load the newly created mesh ---
+        lvr2::ModelPtr loaded_model = lvr2::ModelFactory::readModel(mesh_filename);
+        if (!loaded_model || !loaded_model->m_mesh) {
+            RCLCPP_ERROR(this->get_logger(), "Failed to load the reconstructed mesh file: %s", mesh_filename.c_str());
+            return;
+        }
+
+        lvr2::MeshBufferPtr mesh = loaded_model->m_mesh;
+        lvr2::floatArr vertices = mesh->getVertices();
+        lvr2::indexArray face_indices = mesh->getFaceIndices();
+        size_t num_faces = mesh->numFaces();
+
+        if (!vertices || !face_indices || num_faces == 0)
+        {
+            RCLCPP_ERROR(this->get_logger(), "Loaded mesh is missing vertex or face data.");
+            return;
+        }
+
+        // --- 4. Convert mesh to a ROS Marker and publish ---
+        _lvr_mesh_marker.points.clear();
+        _lvr_mesh_marker.header.stamp = this->now();
+        
+        for (size_t i = 0; i < num_faces; i ++)
+        {
+            
+            // {
+            //     geometry_msgs::msg::Point p;
+            //     size_t vertex_idx = face_indices[i + j];
+            //     p.x = vertices[vertex_idx].x;
+            //     p.y = vertices[vertex_idx].y;
+            //     p.z = vertices[vertex_idx].z;
+            //     _lvr_mesh_marker.points.push_back(p);
+            // }
+
+             // The face_indices array is flat, so we access it like this:
+            size_t idx1 = face_indices[i * 3 + 0];
+            size_t idx2 = face_indices[i * 3 + 1];
+            size_t idx3 = face_indices[i * 3 + 2];
+
+            // Define the three vertices of the triangle
+            geometry_msgs::msg::Point p1, p2, p3;
+
+            // The vertices array is also flat (x, y, z, x, y, z, ...)
+            p1.x = vertices[idx1 * 3 + 0];
+            p1.y = vertices[idx1 * 3 + 1];
+            p1.z = vertices[idx1 * 3 + 2];
+
+            p2.x = vertices[idx2 * 3 + 0];
+            p2.y = vertices[idx2 * 3 + 1];
+            p2.z = vertices[idx2 * 3 + 2];
+
+            p3.x = vertices[idx3 * 3 + 0];
+            p3.y = vertices[idx3 * 3 + 1];
+            p3.z = vertices[idx3 * 3 + 2];
+
+            // Add the three vertices to the marker's point list
+            _lvr_mesh_marker.points.push_back(p1);
+            _lvr_mesh_marker.points.push_back(p2);
+            _lvr_mesh_marker.points.push_back(p3);
+        }
+
+        _pub_lvr_reconstructed_mesh->publish(_lvr_mesh_marker);
+        RCLCPP_INFO(this->get_logger(), "Published LVR reconstructed mesh to RViz.");
+    }
+
     void saveDataCallback() {
         RCLCPP_INFO(this->get_logger(), "Periodic save triggered.");
 
@@ -725,7 +861,9 @@ private:
         // MODIFICATION: Check the latched pointers, not the volatile ones from _slam_core
         if (map_to_save) {
             std::string cloud_filename = _log_path + "global_cloud.ply";
+            std::string lvr_mesh_filename = _log_path + "lvr_reconstructed_mesh.ply";
             savePointCloudToPly(map_to_save, cloud_filename);
+            reconstructAndPublishLVRMesh(cloud_filename, lvr_mesh_filename);
         } else {
             RCLCPP_INFO(this->get_logger(), "No global map available to save.");
         }
@@ -743,7 +881,15 @@ private:
         isae::typed_vec_landmarks ldmks = map->getLandmarks();
         auto& points = ldmks["pointxd"];
 
-        if (points.empty()) {
+        std::vector<Eigen::Vector3d> valid_pts;
+
+        valid_pts.reserve(points.size());
+        for (const auto& l : points) {
+            if (l->isOutlier()) continue;
+            valid_pts.push_back(l->getPose().translation());
+        }
+
+        if (valid_pts.empty()) {
             RCLCPP_INFO(this->get_logger(), "Point cloud is empty. Skipping save for %s.", filename.c_str());
             return;
         }
@@ -758,17 +904,15 @@ private:
         file << "ply\n";
         file << "format ascii 1.0\n";
         file << "comment Generated by RosVisualizer\n";
-        file << "element vertex " << points.size() << "\n";
+        file << "element vertex " << valid_pts.size() << "\n";
         file << "property float x\n";
         file << "property float y\n";
         file << "property float z\n";
         file << "end_header\n";
 
         // Write points data
-        for (const auto &l : points) {
-            if (l->isOutlier()) continue;
-            Eigen::Vector3d pt3d = l->getPose().translation();
-            file << pt3d.x() << " " << pt3d.y() << " " << pt3d.z() << "\n";
+        for (const auto &p : valid_pts) {
+            file << p.x() << " " << p.y() << " " << p.z() << "\n";
         }
         file.close();
         RCLCPP_INFO(this->get_logger(), "Successfully saved point cloud to %s", filename.c_str());

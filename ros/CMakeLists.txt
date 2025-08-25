@@ -41,6 +41,7 @@ find_package(Eigen3 REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(Ceres REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
+find_package(LVR2 REQUIRED)
 
 include_directories(
   ${OpenCV_INCLUDE_DIRS}
@@ -49,6 +50,7 @@ include_directories(
   ${YAML_CPP_INCLUDE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/../cpp/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../cpp
+  ${LVR2_INCLUDE_DIRS}
 )
 
 
@@ -61,7 +63,7 @@ file(GLOB_RECURSE LIB_SOURCES ../cpp/src/*.cpp ../cpp/include/*.cpp
 file(GLOB_RECURSE LIB_HEADERS ../cpp/include/*.h ../cpp/include/*.hpp ../cpp/include/*.inl
   ../cpp/thirdparty/ELSED/src/*.h)
 add_library(${PROJECT_NAME} SHARED ${LIB_SOURCES} ${LIB_HEADERS})
-target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} ${CERES_LIBRARIES} ${YAML_CPP_LIBRARIES} ${PCL_LIBRARIES} ${Boost_SYSTEM_LIBRARY})
+target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} ${CERES_LIBRARIES} ${YAML_CPP_LIBRARIES} ${PCL_LIBRARIES} ${Boost_SYSTEM_LIBRARY} ${LVR2_LIBRARIES})
 
 install(
   TARGETS ${PROJECT_NAME}

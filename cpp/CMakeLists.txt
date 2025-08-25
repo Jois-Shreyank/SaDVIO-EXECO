@@ -28,6 +28,7 @@ find_package(Eigen3 REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(Ceres REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
+find_package(LVR2 REQUIRED)
 
 include_directories(
   include
@@ -45,7 +46,7 @@ file(GLOB_RECURSE LIB_SOURCES src/*.cpp include/*.cpp
 file(GLOB_RECURSE LIB_HEADERS include/*.h include/*.hpp include/*.inl
   thirdparty/ELSED/src/*.h)
 add_library(${PROJECT_NAME} SHARED ${LIB_SOURCES} ${LIB_HEADERS})
-target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} ${CERES_LIBRARIES} ${YAML_CPP_LIBRARIES} ${PCL_LIBRARIES} ${Boost_SYSTEM_LIBRARY})
+target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} ${CERES_LIBRARIES} ${YAML_CPP_LIBRARIES} ${PCL_LIBRARIES} ${Boost_SYSTEM_LIBRARY} ${LVR2_LIBRARIES})
 
 # -------------------------------------------------------------------
 # Install
