@@ -9,6 +9,7 @@ class GlobalMap : public AMap {
   public:
     GlobalMap() = default;
     void addFrame(std::shared_ptr<Frame> &frame) override;
+    
 
 };
 

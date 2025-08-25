@@ -311,6 +311,7 @@ bool SLAMMono::backEndStep() {
 
         // Send the local map to the viewer
         _local_map_to_display = _local_map;
+        _global_map_to_display = _global_map;
     }
 
     return true;

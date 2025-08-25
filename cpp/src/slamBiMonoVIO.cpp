@@ -579,7 +579,7 @@ bool SLAMBiMonoVIO::backEndStep() {
                                                                  _slam_param->_config.sparsification == 1);
 
                 // Uncomment below to enable global map
-                // _global_map->addFrame(_local_map->getFrames().at(0));
+                _global_map->addFrame(_local_map->getFrames().at(0));
                 _map_mutex.lock();
                 _local_map->discardLastFrame();
                 _map_mutex.unlock();
@@ -615,6 +615,7 @@ bool SLAMBiMonoVIO::backEndStep() {
 
         // Send the local map to the viewer
         _local_map_to_display = _local_map;
+        _global_map_to_display = _global_map;
     }
 
     return true;

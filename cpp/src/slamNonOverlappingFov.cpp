@@ -335,6 +335,7 @@ bool SLAMNonOverlappingFov::backEndStep() {
                                                              _local_map->getFrames().at(1),
                                                              _slam_param->_config.sparsification == 1);
             _global_map->addFrame(_local_map->getFrames().at(0));
+            _global_map_to_display = _global_map;
             _local_map->discardLastFrame();
         }
 

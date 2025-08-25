@@ -5,6 +5,15 @@
 #include <opencv2/core.hpp>
 #include <thread>
 
+#include <fstream>
+#include <chrono>
+#include <iomanip>
+#include <sstream>
+#include <filesystem>
+#include <unordered_map>
+// MODIFICATION: Add mutex for thread safety
+#include <mutex>
+
 #include "sensor_msgs/point_cloud2_iterator.hpp"
 #include <geometry_msgs/msg/point.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -24,8 +33,7 @@
 #include "isaeslam/data/mesh/global_mesh.h"
 #include "isaeslam/slamCore.h"
 
-// namespace isae {
-
+// ... (The convertToPointCloud2 function and the rest of the file up to runVisualizer remains the same) ...
 sensor_msgs::msg::PointCloud2::SharedPtr convertToPointCloud2(const std::vector<Eigen::Vector3d> &points) {
     // Create a PointCloud2 message
     auto point_cloud_msg = std::make_shared<sensor_msgs::msg::PointCloud2>();
@@ -77,9 +85,11 @@ sensor_msgs::msg::PointCloud2::SharedPtr convertToPointCloud2(const std::vector<
     return point_cloud_msg;
 }
 
+
 class RosVisualizer : public rclcpp::Node {
 
   public:
+    // ... (Constructor and other publish functions remain the same) ...
     RosVisualizer() : Node("slam_publisher") {
         std::cout << "\n Creation of ROS vizualizer" << std::endl;
 
@@ -131,7 +141,7 @@ class RosVisualizer : public rclcpp::Node {
         _points_global.color.a = 1.0;
         _points_global.color.r = 0.0;
         _points_global.color.g = 0.0;
-        _points_global.color.b = 0.0;
+        _points_global.color.b = 1.0;
 
         // map lines design
         _lines_local.type    = visualization_msgs::msg::Marker::LINE_LIST;
@@ -171,7 +181,7 @@ class RosVisualizer : public rclcpp::Node {
         _global_mesh_line_list.scale.y = 1.0;
         _global_mesh_line_list.scale.z = 1.0;
     }
-
+    // ... (All publish functions, drawMatchesTopBottom, etc. are unchanged)
     void drawMatchesTopBottom(cv::Mat Itop,
                               std::vector<cv::KeyPoint> kp_top,
                               cv::Mat Ibottom,
@@ -477,6 +487,11 @@ class RosVisualizer : public rclcpp::Node {
 
     void publishGlobalMapCloud(const std::shared_ptr<isae::GlobalMap> map) {
         isae::typed_vec_landmarks ldmks = map->getLandmarks();
+        
+        RCLCPP_INFO(this->get_logger(),
+            "GlobalMap contains %zu point landmarks and %zu line landmarks",
+            ldmks["pointxd"].size(),
+            ldmks["linexd"].size());
 
         _points_global.header.frame_id    = "world";
         _points_global.header.stamp       = rclcpp::Node::now();
@@ -615,10 +630,23 @@ class RosVisualizer : public rclcpp::Node {
     _pub_global_mesh->publish(_global_mesh_line_list);
     }
 
-
     void runVisualizer(std::shared_ptr<isae::SLAMCore> SLAM) {
+        _slam_core = SLAM;
+        
+        if (!std::filesystem::exists(_log_path)) {
+            RCLCPP_INFO(this->get_logger(), "Creating logging directory: %s", _log_path.c_str());
+            std::filesystem::create_directories(_log_path);
+        }
+
+        auto last_save_time = std::chrono::steady_clock::now();
 
         while (true) {
+
+            auto current_time = std::chrono::steady_clock::now();
+            if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_save_time).count() >= 10) {
+                saveDataCallback();
+                last_save_time = current_time; 
+            }
 
             if (SLAM->_frame_to_display) {
                 publishImage(SLAM->_frame_to_display);
@@ -639,7 +667,22 @@ class RosVisualizer : public rclcpp::Node {
 
             if (SLAM->_global_mesh_to_display) {
                 publishGlobalMesh(SLAM->_global_mesh_to_display);
+                // MODIFICATION: Latch the latest valid mesh pointer before it's reset
+                {
+                    std::lock_guard<std::mutex> lock(_map_mutex);
+                    _latest_global_mesh = SLAM->_global_mesh_to_display;
+                }
                 SLAM->_global_mesh_to_display.reset();
+            }
+
+            if (SLAM->_global_map_to_display) {
+                publishGlobalMapCloud(SLAM->_global_map_to_display);
+                // MODIFICATION: Latch the latest valid map pointer before it's reset
+                {
+                    std::lock_guard<std::mutex> lock(_map_mutex);
+                    _latest_global_map = SLAM->_global_map_to_display;
+                }
+                SLAM->_global_map_to_display.reset();
             }
 
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -657,6 +700,145 @@ class RosVisualizer : public rclcpp::Node {
     visualization_msgs::msg::Marker _points_local, _points_global, _points_local1, _lines_local, _lines_global;
     visualization_msgs::msg::Marker _mesh_line_list;
     visualization_msgs::msg::Marker _global_mesh_line_list;
+
+private: 
+    void saveDataCallback() {
+        RCLCPP_INFO(this->get_logger(), "Periodic save triggered.");
+
+        // MODIFICATION: Create local copies of the shared pointers to use for saving.
+        // This minimizes the time we hold the mutex lock.
+        std::shared_ptr<isae::GlobalMap> map_to_save;
+        std::shared_ptr<isae::GlobalMesh> mesh_to_save;
+        {
+            std::lock_guard<std::mutex> lock(_map_mutex);
+            map_to_save = _latest_global_map;
+            mesh_to_save = _latest_global_mesh;
+        }
+
+        // Generate a timestamp for unique filenames
+        auto now = std::chrono::system_clock::now();
+        auto in_time_t = std::chrono::system_clock::to_time_t(now);
+        std::stringstream ss;
+        ss << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d_%H-%M-%S");
+        std::string timestamp = ss.str();
+
+        // MODIFICATION: Check the latched pointers, not the volatile ones from _slam_core
+        if (map_to_save) {
+            std::string cloud_filename = _log_path + "global_cloud.ply";
+            savePointCloudToPly(map_to_save, cloud_filename);
+        } else {
+            RCLCPP_INFO(this->get_logger(), "No global map available to save.");
+        }
+
+        if (mesh_to_save) {
+            std::string mesh_filename = _log_path + "global_mesh.ply";
+            saveMeshToPly(mesh_to_save, mesh_filename);
+        } else {
+            RCLCPP_INFO(this->get_logger(), "No global mesh available to save.");
+        }
+    }
+
+    // ... (savePointCloudToPly and saveMeshToPly remain the same) ...
+    void savePointCloudToPly(const std::shared_ptr<isae::GlobalMap> map, const std::string &filename) {
+        isae::typed_vec_landmarks ldmks = map->getLandmarks();
+        auto& points = ldmks["pointxd"];
+
+        if (points.empty()) {
+            RCLCPP_INFO(this->get_logger(), "Point cloud is empty. Skipping save for %s.", filename.c_str());
+            return;
+        }
+
+        std::ofstream file(filename);
+        if (!file.is_open()) {
+            RCLCPP_ERROR(this->get_logger(), "Failed to open file for writing: %s", filename.c_str());
+            return;
+        }
+
+        // Write PLY header
+        file << "ply\n";
+        file << "format ascii 1.0\n";
+        file << "comment Generated by RosVisualizer\n";
+        file << "element vertex " << points.size() << "\n";
+        file << "property float x\n";
+        file << "property float y\n";
+        file << "property float z\n";
+        file << "end_header\n";
+
+        // Write points data
+        for (const auto &l : points) {
+            if (l->isOutlier()) continue;
+            Eigen::Vector3d pt3d = l->getPose().translation();
+            file << pt3d.x() << " " << pt3d.y() << " " << pt3d.z() << "\n";
+        }
+        file.close();
+        RCLCPP_INFO(this->get_logger(), "Successfully saved point cloud to %s", filename.c_str());
+    }
+    void saveMeshToPly(const std::shared_ptr<isae::GlobalMesh> mesh, const std::string &filename) {
+        const auto& polygons = mesh->getPolygonVector();
+        if (polygons.empty()) {
+            RCLCPP_INFO(this->get_logger(), "Mesh is empty. Skipping save for %s.", filename.c_str());
+            return;
+        }
+
+        std::ofstream file(filename);
+        if (!file.is_open()) {
+            RCLCPP_ERROR(this->get_logger(), "Failed to open file for writing: %s", filename.c_str());
+            return;
+        }
+
+        // Map unique vertices to an index to define faces correctly
+        std::vector<std::shared_ptr<isae::Vertex>> unique_vertices;
+        std::unordered_map<std::shared_ptr<isae::Vertex>, int> vertex_to_index;
+
+        for (const auto& poly : polygons) {
+            for (const auto& vertex : poly->getVertices()) {
+                if (vertex_to_index.find(vertex) == vertex_to_index.end()) {
+                    vertex_to_index[vertex] = unique_vertices.size();
+                    unique_vertices.push_back(vertex);
+                }
+            }
+        }
+
+        // Write PLY header
+        file << "ply\n";
+        file << "format ascii 1.0\n";
+        file << "comment Generated by RosVisualizer\n";
+        file << "element vertex " << unique_vertices.size() << "\n";
+        file << "property float x\n";
+        file << "property float y\n";
+        file << "property float z\n";
+        file << "element face " << polygons.size() << "\n";
+        file << "property list uchar int vertex_indices\n";
+        file << "end_header\n";
+
+        // Write vertex data
+        for (const auto& vertex : unique_vertices) {
+            Eigen::Vector3d pos = vertex->getVertexPosition();
+            file << pos.x() << " " << pos.y() << " " << pos.z() << "\n";
+        }
+
+        // Write face data (assuming triangles)
+        for (const auto& poly : polygons) {
+            const auto& vertices = poly->getVertices();
+            if (vertices.size() == 3) {
+                file << "3 " << vertex_to_index[vertices[0]] << " "
+                     << vertex_to_index[vertices[1]] << " "
+                     << vertex_to_index[vertices[2]] << "\n";
+            }
+        }
+
+        file.close();
+        RCLCPP_INFO(this->get_logger(), "Successfully saved mesh to %s", filename.c_str());
+    }
+
+    std::shared_ptr<isae::SLAMCore> _slam_core;
+    std::string _log_path = "/root/Cosys-AirSim-EXECO/ros2/log_slam/";
+
+    // MODIFICATION: Add member variables to latch the latest map and mesh data
+    std::shared_ptr<isae::GlobalMap> _latest_global_map;
+    std::shared_ptr<isae::GlobalMesh> _latest_global_mesh;
+    std::mutex _map_mutex;
+
 };
 
 // } // namespace isae
