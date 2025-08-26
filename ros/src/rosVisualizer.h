@@ -672,7 +672,7 @@ class RosVisualizer : public rclcpp::Node {
         while (true) {
 
             auto current_time = std::chrono::steady_clock::now();
-            if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_save_time).count() >= 10) {
+            if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_save_time).count() >= 1) {
                 saveDataCallback();
                 last_save_time = current_time; 
             }
