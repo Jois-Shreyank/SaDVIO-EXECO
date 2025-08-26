@@ -111,6 +111,7 @@ class RosVisualizer : public rclcpp::Node {
         _pub_cloud                  = this->create_publisher<sensor_msgs::msg::PointCloud2>("point_cloud", 1000);
         _tf_broadcaster             = std::make_shared<tf2_ros::TransformBroadcaster>(this);
         _pub_lvr_reconstructed_mesh = this->create_publisher<visualization_msgs::msg::Marker>("lvr_reconstructed_mesh", 1000);
+        _pub_local_map_cloud_pc2    = this->create_publisher<sensor_msgs::msg::PointCloud2>("map_local_cloud_pc2", 10);
 
         _vo_traj_msg.type    = visualization_msgs::msg::Marker::LINE_STRIP;
         _vo_traj_msg.color.a = 1.0;
@@ -193,10 +194,10 @@ class RosVisualizer : public rclcpp::Node {
         _lvr_mesh_marker.scale.x = 1.0;
         _lvr_mesh_marker.scale.y = 1.0;
         _lvr_mesh_marker.scale.z = 1.0;
-        _lvr_mesh_marker.color.a = 0.9;
-        _lvr_mesh_marker.color.r = 0.2;
-        _lvr_mesh_marker.color.g = 1.0;
-        _lvr_mesh_marker.color.b = 0.2;
+        _lvr_mesh_marker.color.a = 0.5;
+        _lvr_mesh_marker.color.r = 1.0;
+        _lvr_mesh_marker.color.g = 0.0;
+        _lvr_mesh_marker.color.b = 1.0;
     }
     // ... (All publish functions, drawMatchesTopBottom, etc. are unchanged)
     void drawMatchesTopBottom(cv::Mat Itop,
@@ -453,10 +454,16 @@ class RosVisualizer : public rclcpp::Node {
         _points_local.points.clear();
         _points_local1.points.clear();
 
+        std::vector<Eigen::Vector3d> points_for_pc2;
+        // Reserve memory for efficiency
+        points_for_pc2.reserve(ldmks["pointxd"].size());
+
         for (auto &l : ldmks["pointxd"]) {
             if (l->isOutlier())
                 continue;
             Eigen::Vector3d pt3d = l->getPose().translation();
+            points_for_pc2.push_back(pt3d);
+
 
             geometry_msgs::msg::Point pt;
             pt.x = pt3d.x();
@@ -471,6 +478,11 @@ class RosVisualizer : public rclcpp::Node {
                     _points_local.points.push_back(pt);
             } else
                 _points_local.points.push_back(pt);
+        }
+
+        if (!points_for_pc2.empty()) {
+            sensor_msgs::msg::PointCloud2::SharedPtr pc2_msg = convertToPointCloud2(points_for_pc2);
+            _pub_local_map_cloud_pc2->publish(*pc2_msg);
         }
 
         _pub_local_map_cloud1->publish(_points_local1);
@@ -710,6 +722,7 @@ class RosVisualizer : public rclcpp::Node {
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pub_image_kps, _pub_image_matches_in_time,
         _pub_image_matches_in_frame;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr _pub_cloud;
+    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr _pub_local_map_cloud_pc2;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr _pub_vo_pose;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr _pub_lvr_reconstructed_mesh;
     std::shared_ptr<tf2_ros::TransformBroadcaster> _tf_broadcaster;
@@ -761,7 +774,7 @@ private:
                 << " && " << lvr2_executable_path
                 << " --inputFile " << cloud_filename
                 << " --outputFile " << out_name.string()
-                << " -v 0.7"; // Your specified voxel size
+                << " -v 0.66 -o -c -f 18 --cleanContours 3 --planeIterations 100 --kd 20 --ki 20 --kn 300 --nem 3 "; // Your specified voxel size
 
         RCLCPP_INFO(this->get_logger(), "Executing LVR reconstruction: %s", command.str().c_str());
         int return_code = std::system(command.str().c_str());
